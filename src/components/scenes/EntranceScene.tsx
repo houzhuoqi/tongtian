@@ -108,61 +108,56 @@ export function EntranceScene({ onDone }: { onDone: () => void }) {
   }, []);
 
   // 注册 layer ref；depth 0..1，存为 0..100 整数键
-  const layer = (depth: number) => {
+  const registerLayer = (depth: number) => (el: HTMLDivElement | null) => {
     const key = Math.round(depth * 100);
-    return {
-      ref: (el: HTMLDivElement | null) => {
-        if (el) layerRefs.current.set(key, el);
-        else layerRefs.current.delete(key);
-      },
-      style: {
-        willChange: "transform",
-        transition: "scale 1200ms ease-out", // 仅 scale 走过渡，translate 由 RAF 接管
-      } as React.CSSProperties,
-    };
+    if (el) layerRefs.current.set(key, el);
+    else layerRefs.current.delete(key);
   };
 
   return (
     <div ref={rootRef} className="relative h-full w-full overflow-hidden bg-black">
-      {/* 远景：写实背景图 */}
       <div className="absolute inset-0" style={{ perspective: "1200px" }}>
+        {/* 远景：写实背景图 */}
         <div
+          ref={registerLayer(0)}
           className="absolute inset-0"
           style={{
             backgroundImage: `url(${entranceBg})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
             filter: phase >= 3 ? "brightness(0.4) blur(3px)" : "brightness(0.85)",
-            ...layer(0),
-            transition:
-              "transform 6500ms ease-out, filter 1200ms ease-out",
+            willChange: "transform, filter",
+            transition: "filter 1200ms ease-out",
           }}
         />
 
-        {/* 中远景：远山雾光层（轻微模糊，制造空气感） */}
+        {/* 中远景：远山雾光层 */}
         <div
+          ref={registerLayer(0.15)}
           className="absolute inset-0 pointer-events-none mix-blend-screen"
           style={{
             background:
               "radial-gradient(ellipse 70% 45% at 50% 38%, oklch(0.55 0.04 70 / 0.35), transparent 60%)",
             filter: "blur(18px)",
-            ...layer(0.15),
+            willChange: "transform",
           }}
         />
 
-        {/* 中景：远处竹影剪影（SVG，轻微模糊） */}
+        {/* 中景：远处竹影剪影 */}
         <div
+          ref={registerLayer(0.35)}
           className="absolute inset-0 pointer-events-none"
-          style={{ filter: "blur(2.5px)", opacity: 0.55, ...layer(0.35) }}
+          style={{ filter: "blur(2.5px)", opacity: 0.55, willChange: "transform" }}
         >
           <BambooSilhouette opacity={0.45} count={9} hue={150} />
         </div>
 
-        {/* 中近景：庙宇飞檐剪影（仅前两阶段） */}
+        {/* 中近景：庙宇飞檐剪影 */}
         {phase >= 1 && (
           <div
+            ref={registerLayer(0.5)}
             className="absolute inset-x-0 top-[6%] flex justify-center pointer-events-none animate-fade-in"
-            style={{ filter: "blur(1px)", ...layer(0.5) }}
+            style={{ filter: "blur(1px)", willChange: "transform" }}
           >
             <RoofSilhouette />
           </div>
@@ -177,8 +172,9 @@ export function EntranceScene({ onDone }: { onDone: () => void }) {
         {/* 红布条飘动 */}
         {phase >= 2 && (
           <div
+            ref={registerLayer(0.6)}
             className="absolute left-0 right-0 top-[18%] flex justify-around opacity-70 animate-fade-in pointer-events-none"
-            style={layer(0.6)}
+            style={{ willChange: "transform" }}
           >
             {[0, 1, 2, 3, 4].map((i) => (
               <div
@@ -194,24 +190,20 @@ export function EntranceScene({ onDone }: { onDone: () => void }) {
           </div>
         )}
 
-        {/* 近景：左右两侧深色竹竿（强模糊景深前虚） */}
+        {/* 近景：左右两侧深色竹竿 */}
         <div
+          ref={registerLayer(0.85)}
           className="absolute inset-0 pointer-events-none"
-          style={{ filter: "blur(8px)", ...layer(0.85) }}
+          style={{ filter: "blur(8px)", willChange: "transform" }}
         >
-          <BambooSilhouette
-            opacity={0.85}
-            count={4}
-            sideOnly
-            hue={140}
-            tall
-          />
+          <BambooSilhouette opacity={0.85} count={4} sideOnly hue={140} tall />
         </div>
 
-        {/* 最前景：飘动叶片（重模糊 + 最强视差） */}
+        {/* 最前景：飘动叶片 */}
         <div
+          ref={registerLayer(1)}
           className="absolute inset-0 pointer-events-none"
-          style={{ filter: "blur(14px)", opacity: 0.6, ...layer(1) }}
+          style={{ filter: "blur(14px)", opacity: 0.6, willChange: "transform" }}
         >
           <FrontLeaves />
         </div>
