@@ -4,90 +4,128 @@ import exitBg from "@/assets/scene-exit.jpg";
 // 离场：镜头反向远去 — 远景缓慢缩小变暗，近景叶片快速向后掠过
 export function ExitScene({ onDone }: { onDone: () => void }) {
   const [phase, setPhase] = useState(0);
-  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const phaseRef = useRef(0);
   const rootRef = useRef<HTMLDivElement>(null);
+  const layerRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const tiltRef = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
 
   useEffect(() => {
     const timers = [
-      setTimeout(() => setPhase(1), 1200),
-      setTimeout(() => setPhase(2), 3000),
-      setTimeout(() => setPhase(3), 4800),
+      setTimeout(() => { setPhase(1); phaseRef.current = 1; }, 1200),
+      setTimeout(() => { setPhase(2); phaseRef.current = 2; }, 3000),
+      setTimeout(() => { setPhase(3); phaseRef.current = 3; }, 4800),
       setTimeout(onDone, 6200),
     ];
     return () => timers.forEach(clearTimeout);
   }, [onDone]);
 
   useEffect(() => {
-    let raf = 0;
-    let t = 0;
-    const tick = () => {
-      t += 0.01;
-      setTilt((cur) => ({
-        x: cur.x * 0.92 + Math.sin(t) * 0.08,
-        y: cur.y * 0.92 + Math.cos(t * 0.6) * 0.05,
-      }));
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-
     const onMove = (e: PointerEvent) => {
       const r = rootRef.current?.getBoundingClientRect();
       if (!r) return;
-      const nx = ((e.clientX - r.left) / r.width - 0.5) * 2;
-      const ny = ((e.clientY - r.top) / r.height - 0.5) * 2;
-      setTilt({ x: nx, y: ny });
+      tiltRef.current.tx = ((e.clientX - r.left) / r.width - 0.5) * 2;
+      tiltRef.current.ty = ((e.clientY - r.top) / r.height - 0.5) * 2;
     };
     window.addEventListener("pointermove", onMove);
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("pointermove", onMove);
-    };
+    return () => window.removeEventListener("pointermove", onMove);
   }, []);
 
-  // 离场：远景缩小（scale 1.15 → 0.6），近景反向（先压近 → 快速掠后）
-  const layer = (depth: number) => {
-    // depth 0 远 → 1 近
-    const farScale = 1.15 - phase * 0.18;
-    const nearScale = 1.4 - phase * 0.35; // 近景缩得更快 = 后退感
-    const scale = farScale * (1 - depth) + nearScale * depth;
-    const tx = -tilt.x * (3 + depth * 24);
-    const ty = -tilt.y * (2 + depth * 16);
-    return {
-      transform: `translate3d(${tx}px, ${ty}px, 0) scale(${scale})`,
-      transition: "transform 3500ms ease-in",
-    } as const;
+  // 主循环：呼吸 + 脚步抖动（离场更沉重缓慢）+ 微抖
+  useEffect(() => {
+    let raf = 0;
+    let t = 0;
+    let last = performance.now();
+    const tick = (now: number) => {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      t += dt;
+
+      tiltRef.current.x += (tiltRef.current.tx - tiltRef.current.x) * 0.08;
+      tiltRef.current.y += (tiltRef.current.ty - tiltRef.current.y) * 0.08;
+
+      const breathX = Math.sin(t * 0.9) * 0.1;
+      const breathY = Math.cos(t * 0.6) * 0.07;
+
+      // 离场脚步：稍慢更沉重 1.4Hz
+      const stepHz = 1.4;
+      const stepPhase = t * stepHz * Math.PI * 2;
+      const stepBob = Math.abs(Math.sin(stepPhase));
+      const stepSway = Math.sin(stepPhase * 0.5);
+      // 离场后期能量衰减（已远去）
+      const intensity = Math.max(0.3, 1.1 - phaseRef.current * 0.22);
+
+      const jitterX = (Math.random() - 0.5) * 0.3;
+      const jitterY = (Math.random() - 0.5) * 0.3;
+
+      const farScale = 1.15 - phaseRef.current * 0.18;
+      const nearScale = 1.4 - phaseRef.current * 0.35;
+
+      layerRefs.current.forEach((el, depthKey) => {
+        const depth = depthKey / 100;
+        const scale = farScale * (1 - depth) + nearScale * depth;
+
+        const parX = -(tiltRef.current.x + breathX) * (3 + depth * 24);
+        const parY = -(tiltRef.current.y + breathY) * (2 + depth * 16);
+
+        const stepAmpY = (1.0 + depth * 5.0) * intensity;
+        const stepAmpX = (0.5 + depth * 3.2) * intensity;
+        const stepX = stepSway * stepAmpX;
+        const stepY = -stepBob * stepAmpY;
+
+        const jX = jitterX * (0.5 + depth * 2.0);
+        const jY = jitterY * (0.5 + depth * 2.0);
+
+        const tx = parX + stepX + jX;
+        const ty = parY + stepY + jY;
+
+        el.style.transform = `translate3d(${tx.toFixed(2)}px, ${ty.toFixed(2)}px, 0) scale(${scale.toFixed(4)})`;
+      });
+
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  const registerLayer = (depth: number) => (el: HTMLDivElement | null) => {
+    const key = Math.round(depth * 100);
+    if (el) layerRefs.current.set(key, el);
+    else layerRefs.current.delete(key);
   };
 
   return (
     <div ref={rootRef} className="relative h-full w-full overflow-hidden bg-black">
       {/* 远景：庙宇渐远 */}
       <div
+        ref={registerLayer(0)}
         className="absolute inset-0"
         style={{
           backgroundImage: `url(${exitBg})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
           filter: `brightness(${0.85 - phase * 0.2}) blur(${phase * 2}px)`,
-          ...layer(0),
-          transition: "transform 3500ms ease-in, filter 2000ms ease-in",
+          willChange: "transform, filter",
+          transition: "filter 2000ms ease-in",
         }}
       />
 
       {/* 中景：山雾层 */}
       <div
+        ref={registerLayer(0.2)}
         className="absolute inset-0 pointer-events-none mix-blend-screen"
         style={{
           background:
             "radial-gradient(ellipse 80% 50% at 50% 45%, oklch(0.5 0.04 70 / 0.25), transparent 65%)",
           filter: "blur(20px)",
-          ...layer(0.2),
+          willChange: "transform",
         }}
       />
 
       {/* 中近景：远处竹林剪影 */}
       <div
+        ref={registerLayer(0.45)}
         className="absolute inset-0 pointer-events-none"
-        style={{ filter: "blur(3px)", opacity: 0.6, ...layer(0.45) }}
+        style={{ filter: "blur(3px)", opacity: 0.6, willChange: "transform" }}
       >
         <ExitBamboo opacity={0.5} count={10} />
       </div>
@@ -101,18 +139,20 @@ export function ExitScene({ onDone }: { onDone: () => void }) {
         }}
       />
 
-      {/* 近景：左右竹竿快速向两侧后退（强景深前虚） */}
+      {/* 近景：左右竹竿 */}
       <div
+        ref={registerLayer(0.85)}
         className="absolute inset-0 pointer-events-none"
-        style={{ filter: "blur(10px)", ...layer(0.85) }}
+        style={{ filter: "blur(10px)", willChange: "transform" }}
       >
         <ExitBamboo opacity={0.85} count={5} sideOnly tall />
       </div>
 
       {/* 最前景：模糊叶簇 */}
       <div
+        ref={registerLayer(1)}
         className="absolute inset-0 pointer-events-none"
-        style={{ filter: "blur(16px)", opacity: 0.55, ...layer(1) }}
+        style={{ filter: "blur(16px)", opacity: 0.55, willChange: "transform" }}
       >
         <svg
           className="absolute inset-0 h-full w-full"
