@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import exitBg from "@/assets/scene-exit.jpg";
 
 export function ExitScene({ onDone }: { onDone: () => void }) {
   const [phase, setPhase] = useState(0);
@@ -14,64 +15,54 @@ export function ExitScene({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-black">
+      {/* 写实背景 — 镜头反向远去（缩小 + 模糊 + 变暗） */}
       <div
-        className="absolute inset-0 transition-all duration-[2000ms]"
+        className="absolute inset-0"
         style={{
-          background:
-            "radial-gradient(ellipse 100% 80% at 50% 60%, oklch(0.22 0.06 130 / 0.5), oklch(0.05 0.01 250) 70%)",
-          transform: `scale(${1 + phase * 0.4})`,
+          backgroundImage: `url(${exitBg})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          transform: `scale(${1.15 - phase * 0.18})`,
+          filter: `brightness(${0.85 - phase * 0.2}) blur(${phase * 2}px)`,
+          transition: "transform 3500ms ease-in, filter 2000ms ease-in",
         }}
       />
 
-      {/* 山路远去 */}
+      {/* 雾气加重 */}
       <div
-        className="absolute left-1/2 -translate-x-1/2 transition-all duration-[3500ms] ease-in"
+        className="pointer-events-none absolute inset-0 transition-opacity duration-[2000ms]"
         style={{
-          bottom: "10%",
-          width: "60%",
-          opacity: 1 - phase * 0.3,
-          transform: `translateX(-50%) translateY(${phase * 60}px) scale(${1 - phase * 0.25})`,
+          background: "var(--gradient-fog)",
+          opacity: 0.5 + phase * 0.2,
         }}
-      >
-        <svg viewBox="0 0 400 300" className="h-auto w-full">
-          {/* 石阶逐级缩小 */}
-          {Array.from({ length: 12 }).map((_, i) => {
-            const w = 280 - i * 20;
-            const y = 280 - i * 20;
-            return (
-              <rect
-                key={i}
-                x={(400 - w) / 2}
-                y={y}
-                width={w}
-                height={6}
-                fill={`oklch(0.22 0.02 60 / ${0.9 - i * 0.06})`}
-              />
-            );
-          })}
-          {/* 远处山影 */}
-          <path
-            d="M 0 100 L 100 60 L 180 90 L 260 50 L 340 80 L 400 60 L 400 200 L 0 200 Z"
-            fill="oklch(0.1 0.012 250)"
-            opacity={0.9}
-          />
-        </svg>
-      </div>
+      />
+
+      {/* 暗角 */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse 110% 90% at 50% 55%, transparent 30%, oklch(0.03 0 0 / 0.9) 100%)",
+        }}
+      />
 
       {/* 渐黑 */}
       <div
         className="pointer-events-none absolute inset-0 bg-black transition-opacity duration-[1500ms]"
-        style={{ opacity: phase >= 2 ? 0.85 : 0 }}
+        style={{ opacity: phase >= 2 ? 0.78 : 0 }}
       />
 
       {/* 题字 */}
       <div className="absolute inset-0 flex items-center justify-center">
         <div
           className="text-center font-display tracking-[0.5em] text-gold transition-opacity duration-1000"
-          style={{ opacity: phase >= 2 ? 1 : 0 }}
+          style={{
+            opacity: phase >= 2 ? 1 : 0,
+            textShadow: "0 2px 16px oklch(0 0 0 / 0.95)",
+          }}
         >
           <div className="mb-3 text-3xl">下次再來</div>
-          <div className="text-xs tracking-[0.3em] text-foreground/50">
+          <div className="text-xs tracking-[0.3em] text-foreground/55">
             山中歸路，竹影自開
           </div>
         </div>
