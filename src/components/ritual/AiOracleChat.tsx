@@ -186,8 +186,16 @@ export function AiOracleChat({
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onCompositionStart={() => {
+              composingRef.current = true;
+            }}
+            onCompositionEnd={() => {
+              composingRef.current = false;
+            }}
             onKeyDown={(e) => {
+              // 中文输入法 composition 期间不要触发提交，避免空发或并发请求
               if (e.key === "Enter" && !e.shiftKey) {
+                if (composingRef.current || e.nativeEvent.isComposing) return;
                 e.preventDefault();
                 send();
               }
