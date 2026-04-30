@@ -49,6 +49,12 @@
   --animate-scale-in: scale-in 0.4s ease-out;
   --animate-incense-rise: incense-rise 6s linear infinite;
   --animate-bei-tumble: bei-tumble 1.4s cubic-bezier(0.4, 0, 0.2, 1);
+  --animate-bei-toss: bei-toss 1.6s cubic-bezier(0.33, 0, 0.4, 1) forwards;
+  --animate-bei-spin: bei-spin 1.6s linear forwards;
+  --animate-bei-shadow: bei-shadow 1.6s cubic-bezier(0.33, 0, 0.4, 1) forwards;
+  --animate-screen-shake: screen-shake 0.55s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+  --animate-dust-puff: dust-puff 1.1s cubic-bezier(0.16, 0.84, 0.44, 1) forwards;
+  --animate-impact-ring: impact-ring 0.7s cubic-bezier(0.16, 0.84, 0.44, 1) forwards;
   --animate-scroll-unfurl: scroll-unfurl 1.2s cubic-bezier(0.4, 0, 0.2, 1);
   --animate-flicker: flicker 3s ease-in-out infinite;
   --animate-bamboo-sway: bamboo-sway 8s ease-in-out infinite;
