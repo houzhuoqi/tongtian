@@ -152,14 +152,20 @@ export function EntranceScene({ onDone }: { onDone: () => void }) {
           <BambooSilhouette opacity={0.45} count={9} hue={150} />
         </div>
 
-        {/* 中近景：庙宇飞檐剪影 */}
+        {/* 中近景：庙门暖光晕（替代之前的飞檐剪影 + 红布条占位） */}
         {phase >= 1 && (
           <div
             ref={registerLayer(0.5)}
-            className="absolute inset-x-0 top-[6%] flex justify-center pointer-events-none animate-fade-in"
-            style={{ filter: "blur(1px)", willChange: "transform" }}
+            className="absolute inset-x-0 top-[18%] flex justify-center pointer-events-none animate-fade-in"
+            style={{ willChange: "transform" }}
           >
-            <RoofSilhouette />
+            <div
+              className="h-40 w-[55%] rounded-[50%] blur-2xl"
+              style={{
+                background:
+                  "radial-gradient(ellipse at center, oklch(0.62 0.16 40 / 0.35) 0%, oklch(0.55 0.14 35 / 0.18) 35%, transparent 70%)",
+              }}
+            />
           </div>
         )}
 
@@ -168,27 +174,6 @@ export function EntranceScene({ onDone }: { onDone: () => void }) {
           className="pointer-events-none absolute inset-0"
           style={{ background: "var(--gradient-fog)" }}
         />
-
-        {/* 红布条飘动 */}
-        {phase >= 2 && (
-          <div
-            ref={registerLayer(0.6)}
-            className="absolute left-0 right-0 top-[18%] flex justify-around opacity-70 animate-fade-in pointer-events-none"
-            style={{ willChange: "transform" }}
-          >
-            {[0, 1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="h-24 w-1.5 origin-top animate-cloth-wave bg-gradient-to-b from-accent/80 via-accent/60 to-accent/20"
-                style={{
-                  animationDelay: `${i * 0.3}s`,
-                  animationDuration: `${3 + i * 0.4}s`,
-                  filter: "drop-shadow(0 0 8px oklch(0.45 0.18 30 / 0.6))",
-                }}
-              />
-            ))}
-          </div>
-        )}
 
         {/* 近景：左右两侧深色竹竿 */}
         <div
@@ -306,25 +291,6 @@ function BambooSilhouette({
   );
 }
 
-function RoofSilhouette() {
-  return (
-    <svg
-      width="78%"
-      viewBox="0 0 400 90"
-      aria-hidden
-      style={{ filter: "drop-shadow(0 6px 14px oklch(0 0 0 / 0.8))" }}
-    >
-      <path
-        d="M0,70 Q40,50 90,55 L120,30 Q200,4 280,30 L310,55 Q360,50 400,70 L400,90 L0,90 Z"
-        fill="oklch(0.08 0.02 30)"
-      />
-      <path
-        d="M120,30 Q200,4 280,30 L268,38 Q200,18 132,38 Z"
-        fill="oklch(0.05 0.02 30)"
-      />
-    </svg>
-  );
-}
 
 function FrontLeaves() {
   return (
