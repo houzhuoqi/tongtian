@@ -30,6 +30,16 @@ export function AiOracleChat({
     },
   ]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const mountedRef = useRef(true);
+  const composingRef = useRef(false);
+  const inflightRef = useRef(false);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
@@ -38,41 +48,71 @@ export function AiOracleChat({
     });
   }, [messages, loading]);
 
+  const safeSet = <T,>(setter: (v: T) => void, v: T) => {
+    if (mountedRef.current) setter(v);
+  };
+
   async function send() {
     const text = input.trim();
-    if (!text || loading) return;
-    setInput("");
+    if (!text || loading || inflightRef.current) return;
+    inflightRef.current = true;
+    safeSet(setInput, "");
     const next: Msg[] = [...messages, { role: "user", content: text }];
-    setMessages(next);
-    setLoading(true);
+    safeSet(setMessages, next);
+    safeSet(setLoading, true);
 
     try {
-      const result = await ask({
-        data: {
-          signNumber: sign.number,
-          signTitle: sign.title,
-          signFortune: sign.fortune,
-          signPoem: sign.poem,
-          signHint: sign.hint,
-          signClassic: sign.classic,
-          wish,
-          history: next,
-        },
-      });
-      if (result.ok) {
-        setMessages((m) => [...m, { role: "assistant", content: result.content }]);
+      let result: Awaited<ReturnType<typeof ask>>;
+      try {
+        result = await ask({
+          data: {
+            signNumber: sign.number,
+            signTitle: sign.title,
+            signFortune: sign.fortune,
+            signPoem: sign.poem,
+            signHint: sign.hint,
+            signClassic: sign.classic,
+            wish,
+            history: next,
+          },
+        });
+      } catch (err) {
+        console.error("askOracle network error:", err);
+        if (mountedRef.current) {
+          toast.error("與山中信使失聯，請稍後再試");
+          setMessages((m) => [
+            ...m,
+            { role: "assistant", content: "（與山中信使失聯，請稍後再試）" },
+          ]);
+        }
+        return;
+      }
+
+      if (!mountedRef.current) return;
+
+      if (result && result.ok) {
+        const content =
+          typeof result.content === "string" && result.content.trim().length > 0
+            ? result.content
+            : "（神明沉默不語）";
+        setMessages((m) => [...m, { role: "assistant", content }]);
       } else {
-        toast.error(result.error);
+        const errMsg = (result && "error" in result && result.error) || "神諭未達，請稍後再問。";
+        toast.error(errMsg);
         setMessages((m) => [
           ...m,
-          { role: "assistant", content: `（${result.error}）` },
+          { role: "assistant", content: `（${errMsg}）` },
         ]);
       }
     } catch (e) {
-      console.error(e);
-      toast.error("解籤失敗，請稍後再試");
+      // 兜底：任何同步异常都不让组件崩溃
+      console.error("AiOracleChat send unexpected:", e);
+      if (mountedRef.current) {
+        toast.error("解籤失敗，請稍後再試");
+      }
     } finally {
-      setLoading(false);
+      inflightRef.current = false;
+      if (mountedRef.current) setLoading(false);
     }
   }
 
@@ -146,8 +186,16 @@ export function AiOracleChat({
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onCompositionStart={() => {
+              composingRef.current = true;
+            }}
+            onCompositionEnd={() => {
+              composingRef.current = false;
+            }}
             onKeyDown={(e) => {
+              // 中文输入法 composition 期间不要触发提交，避免空发或并发请求
               if (e.key === "Enter" && !e.shiftKey) {
+                if (composingRef.current || e.nativeEvent.isComposing) return;
                 e.preventDefault();
                 send();
               }
