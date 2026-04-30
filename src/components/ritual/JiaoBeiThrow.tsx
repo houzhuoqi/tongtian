@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { RitualButton } from "./RitualButton";
 import { RitualCard, RitualOverlay } from "./RitualOverlay";
 import { BEI_INFO, throwBei, type BeiResult } from "@/lib/jiaobei";
