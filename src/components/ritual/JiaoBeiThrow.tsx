@@ -307,6 +307,33 @@ function BeiToss({
               transform: "rotateX(180deg)",
             }}
           />
+          {/* 侧面薄片：rotateX(90°) — 翻转过半圈时短暂出现，强化"立体厚度" */}
+          <img
+            src={beiEdgeImg}
+            alt=""
+            width={96}
+            height={96}
+            draggable={false}
+            className="absolute inset-0 h-24 w-24 select-none"
+            style={{
+              backfaceVisibility: "hidden",
+              transform: "rotateX(90deg) translateZ(0)",
+              opacity: 0.95,
+            }}
+          />
+          <img
+            src={beiEdgeImg}
+            alt=""
+            width={96}
+            height={96}
+            draggable={false}
+            className="absolute inset-0 h-24 w-24 select-none"
+            style={{
+              backfaceVisibility: "hidden",
+              transform: "rotateX(-90deg) scaleY(-1) translateZ(0)",
+              opacity: 0.95,
+            }}
+          />
         </div>
       </div>
     </div>
