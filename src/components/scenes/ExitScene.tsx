@@ -30,7 +30,7 @@ export function ExitScene({ onDone }: { onDone: () => void }) {
     return () => window.removeEventListener("pointermove", onMove);
   }, []);
 
-  // 主循环：呼吸 + 脚步抖动（离场更沉重缓慢）+ 微抖
+  // 主循环：呼吸 + 沉重脚步 + 微抖 + 镜头后退（前景擦边掠过 / 远景缓慢退远）
   useEffect(() => {
     let raf = 0;
     let t = 0;
@@ -43,37 +43,48 @@ export function ExitScene({ onDone }: { onDone: () => void }) {
       tiltRef.current.x += (tiltRef.current.tx - tiltRef.current.x) * 0.08;
       tiltRef.current.y += (tiltRef.current.ty - tiltRef.current.y) * 0.08;
 
-      const breathX = Math.sin(t * 0.9) * 0.1;
-      const breathY = Math.cos(t * 0.6) * 0.07;
+      const breathX = Math.sin(t * 0.85) * 0.12;
+      const breathY = Math.cos(t * 0.55) * 0.09;
 
-      // 离场脚步：稍慢更沉重 1.4Hz
-      const stepHz = 1.4;
+      // 离场脚步：稍慢更沉重 1.35Hz —— 强化版，脚落地时画面明显沉一下
+      const stepHz = 1.35;
       const stepPhase = t * stepHz * Math.PI * 2;
-      const stepBob = Math.abs(Math.sin(stepPhase));
+      // 用 sin 的四次方制造更尖的"咚——咚——"双峰（落脚瞬间）
+      const stepBob = Math.pow(Math.abs(Math.sin(stepPhase)), 1.6);
       const stepSway = Math.sin(stepPhase * 0.5);
-      // 离场后期能量衰减（已远去）
-      const intensity = Math.max(0.3, 1.1 - phaseRef.current * 0.22);
+      // 离场过程中脚步只缓慢减弱，不会一下消失
+      const intensity = Math.max(0.55, 1.05 - phaseRef.current * 0.15);
 
-      const jitterX = (Math.random() - 0.5) * 0.3;
-      const jitterY = (Math.random() - 0.5) * 0.3;
+      // 偶发回头一瞥：~每 4s 缓慢左右转头
+      const lookBack = Math.sin(t * 0.42) * 0.18;
 
-      const farScale = 1.15 - phaseRef.current * 0.18;
-      const nearScale = 1.4 - phaseRef.current * 0.35;
+      const jitterX = (Math.random() - 0.5) * 0.45;
+      const jitterY = (Math.random() - 0.5) * 0.45;
+
+      // 关键：远景缓慢退远（缩小），前景反向放大并掠出画面 —— 这才是"镜头后退"
+      const p = phaseRef.current;
+      const farScale = 1.0 - p * 0.08;       // 1.0 → 0.76
+      const nearScale = 1.35 + p * 0.45;     // 1.35 → 2.7
 
       layerRefs.current.forEach((el, depthKey) => {
         const depth = depthKey / 100;
+        // 远景退远 / 近景放大冲出
         const scale = farScale * (1 - depth) + nearScale * depth;
 
-        const parX = -(tiltRef.current.x + breathX) * (3 + depth * 24);
-        const parY = -(tiltRef.current.y + breathY) * (2 + depth * 16);
+        // 视差 + 回头一瞥（近景幅度更大）
+        const parX =
+          -(tiltRef.current.x + breathX + lookBack) * (4 + depth * 32);
+        const parY = -(tiltRef.current.y + breathY) * (3 + depth * 18);
 
-        const stepAmpY = (1.0 + depth * 5.0) * intensity;
-        const stepAmpX = (0.5 + depth * 3.2) * intensity;
+        // 脚步：近景显著沉降+摆动；幅度比入场更猛体现"沉重归途"
+        const stepAmpY = (1.6 + depth * 9.0) * intensity;
+        const stepAmpX = (0.9 + depth * 5.0) * intensity;
         const stepX = stepSway * stepAmpX;
         const stepY = -stepBob * stepAmpY;
 
-        const jX = jitterX * (0.5 + depth * 2.0);
-        const jY = jitterY * (0.5 + depth * 2.0);
+        // 微抖
+        const jX = jitterX * (0.8 + depth * 2.6);
+        const jY = jitterY * (0.8 + depth * 2.6);
 
         const tx = parX + stepX + jX;
         const ty = parY + stepY + jY;
