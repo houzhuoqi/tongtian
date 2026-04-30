@@ -364,3 +364,139 @@
     var(--gradient-paper);
   color: var(--ritual-ink);
 }
+
+/* —— 掷筊物理动画 —— */
+/* 抛物线：translateY 走 sin 曲线，translateX 略漂移 */
+@keyframes bei-toss {
+  0% {
+    transform: translate3d(var(--tx0, 0px), 0px, 0) scale(1);
+  }
+  18% {
+    transform: translate3d(calc(var(--tx0, 0px) * 0.7), -180px, 0) scale(0.86);
+  }
+  35% {
+    transform: translate3d(calc(var(--tx0, 0px) * 0.4), -240px, 0) scale(0.78);
+  }
+  55% {
+    transform: translate3d(calc(var(--tx0, 0px) * 0.1), -160px, 0) scale(0.84);
+  }
+  72% {
+    transform: translate3d(var(--tx-land, 0px), 0px, 0) scale(1.02);
+  }
+  /* 第一次弹跳 */
+  80% {
+    transform: translate3d(var(--tx-land, 0px), -34px, 0) scale(0.98);
+  }
+  88% {
+    transform: translate3d(var(--tx-land, 0px), 0px, 0) scale(1.04);
+  }
+  /* 第二次微弹 */
+  93% {
+    transform: translate3d(var(--tx-land, 0px), -10px, 0) scale(1);
+  }
+  100% {
+    transform: translate3d(var(--tx-land, 0px), 0px, 0) scale(1);
+  }
+}
+
+/* 翻转：3 轴随机旋转，落地前定格到目标姿态 */
+@keyframes bei-spin {
+  0% {
+    transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg);
+  }
+  72% {
+    transform: rotateX(var(--spin-x, 720deg))
+      rotateY(var(--spin-y, 540deg))
+      rotateZ(var(--spin-z, 180deg));
+  }
+  100% {
+    transform: rotateX(var(--end-x, 0deg))
+      rotateY(var(--end-y, 0deg))
+      rotateZ(var(--end-z, 0deg));
+  }
+}
+
+/* 落地阴影：从大变小再回弹 */
+@keyframes bei-shadow {
+  0% {
+    transform: translateX(-50%) scale(0.4, 0.3);
+    opacity: 0.15;
+    filter: blur(14px);
+  }
+  35% {
+    transform: translateX(-50%) scale(0.25, 0.2);
+    opacity: 0.1;
+    filter: blur(20px);
+  }
+  72% {
+    transform: translateX(-50%) scale(1.1, 0.6);
+    opacity: 0.65;
+    filter: blur(6px);
+  }
+  88% {
+    transform: translateX(-50%) scale(1, 0.55);
+    opacity: 0.55;
+    filter: blur(7px);
+  }
+  100% {
+    transform: translateX(-50%) scale(1, 0.55);
+    opacity: 0.5;
+    filter: blur(8px);
+  }
+}
+
+/* 落地震屏 */
+@keyframes screen-shake {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  10% {
+    transform: translate3d(-3px, 4px, 0);
+  }
+  25% {
+    transform: translate3d(4px, -3px, 0);
+  }
+  40% {
+    transform: translate3d(-2px, 2px, 0);
+  }
+  55% {
+    transform: translate3d(2px, -1px, 0);
+  }
+  70% {
+    transform: translate3d(-1px, 1px, 0);
+  }
+  85% {
+    transform: translate3d(1px, 0, 0);
+  }
+}
+
+/* 尘粒：从落点向外飘散 */
+@keyframes dust-puff {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.4);
+  }
+  15% {
+    opacity: var(--dust-op, 0.7);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx, 30px), var(--dy, -40px)) scale(2.6);
+  }
+}
+
+/* 落地冲击波纹 */
+@keyframes impact-ring {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.2);
+  }
+  20% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(2.6);
+  }
+}
