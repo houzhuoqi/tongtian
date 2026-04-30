@@ -30,59 +30,78 @@ export function ExitScene({ onDone }: { onDone: () => void }) {
     return () => window.removeEventListener("pointermove", onMove);
   }, []);
 
-  // 主循环：呼吸 + 沉重脚步 + 微抖 + 镜头后退（前景擦边掠过 / 远景缓慢退远）
+  // 运镜常量（与帧率无关：所有相位以 dt 秒累积）
+  const STEP_HZ = 1.4;            // 步频：1.4Hz ≈ 行走节奏
+  const STEP_PEAK_SHARPNESS = 1.8; // 双峰落地的锐度（越大越"咚")
+  const LOOK_BACK_HZ = 0.22;       // 回头一瞥频率：~4.5s 一次
+  const LOOK_BACK_AMP = 0.22;      // 回头幅度
+  const BREATH_HZ_X = 0.135;       // 呼吸（横向）
+  const BREATH_HZ_Y = 0.088;       // 呼吸（纵向）
+
+  // 主循环：呼吸 + 沉重脚步 + 微抖 + 镜头前进（背景放大 / 近景擦边掠出）
   useEffect(() => {
     let raf = 0;
+    let stepPhase = 0;   // 累积相位（与帧率无关）
+    let breathPhaseX = 0;
+    let breathPhaseY = 0;
+    let lookPhase = 0;
     let t = 0;
     let last = performance.now();
+    const TWO_PI = Math.PI * 2;
+
     const tick = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
       t += dt;
 
+      // 累积相位 —— 不依赖 t * Hz，避免长时间漂移和高刷设备手感不同
+      stepPhase = (stepPhase + dt * STEP_HZ * TWO_PI) % TWO_PI;
+      breathPhaseX = (breathPhaseX + dt * BREATH_HZ_X * TWO_PI) % TWO_PI;
+      breathPhaseY = (breathPhaseY + dt * BREATH_HZ_Y * TWO_PI) % TWO_PI;
+      lookPhase = (lookPhase + dt * LOOK_BACK_HZ * TWO_PI) % TWO_PI;
+
       tiltRef.current.x += (tiltRef.current.tx - tiltRef.current.x) * 0.08;
       tiltRef.current.y += (tiltRef.current.ty - tiltRef.current.y) * 0.08;
 
-      const breathX = Math.sin(t * 0.85) * 0.12;
-      const breathY = Math.cos(t * 0.55) * 0.09;
+      const breathX = Math.sin(breathPhaseX) * 0.12;
+      const breathY = Math.cos(breathPhaseY) * 0.09;
 
-      // 离场脚步：稍慢更沉重 1.35Hz —— 强化版，脚落地时画面明显沉一下
-      const stepHz = 1.35;
-      const stepPhase = t * stepHz * Math.PI * 2;
-      // 用 sin 的四次方制造更尖的"咚——咚——"双峰（落脚瞬间）
-      const stepBob = Math.pow(Math.abs(Math.sin(stepPhase)), 1.6);
+      // 双峰落地：|sin|^k 越大越锐利
+      const stepBob = Math.pow(Math.abs(Math.sin(stepPhase)), STEP_PEAK_SHARPNESS);
       const stepSway = Math.sin(stepPhase * 0.5);
-      // 离场过程中脚步只缓慢减弱，不会一下消失
+      // 离场过程中脚步只缓慢减弱
       const intensity = Math.max(0.55, 1.05 - phaseRef.current * 0.15);
 
-      // 偶发回头一瞥：~每 4s 缓慢左右转头
-      const lookBack = Math.sin(t * 0.42) * 0.18;
+      // 回头一瞥
+      const lookBack = Math.sin(lookPhase) * LOOK_BACK_AMP;
 
-      const jitterX = (Math.random() - 0.5) * 0.45;
-      const jitterY = (Math.random() - 0.5) * 0.45;
+      // 微抖：用 dt 归一化，让 60Hz / 120Hz 设备总幅度一致
+      const jScale = Math.sqrt(dt * 60); // 60Hz 基准
+      const jitterX = (Math.random() - 0.5) * 0.55 * jScale;
+      const jitterY = (Math.random() - 0.5) * 0.55 * jScale;
 
-      // 关键：远景缓慢退远（缩小），前景反向放大并掠出画面 —— 这才是"镜头后退"
+      // 关键：镜头"向外走" —— 背景在视野中放大、近景往两侧擦出画面
+      // 远景（depth=0）：从 1.0 缓慢推近到 1.22（人在远离庙宇，但庙宇在画面里因镜头前推而变大？
+      // 不 —— 真正"走出去"是观察者前进，远景在视野中其实稳定/微缩；前景由小变大并掠过镜头边缘。
+      // 这里采用电影常用做法：远景轻微推近（1.0→1.18）保留"被庙宇目送"的留恋感，
+      // 近景大幅放大（1.2→3.2）模拟竹叶贴脸掠过。
       const p = phaseRef.current;
-      const farScale = 1.0 - p * 0.08;       // 1.0 → 0.76
-      const nearScale = 1.35 + p * 0.45;     // 1.35 → 2.7
+      const farScale = 1.0 + p * 0.06;       // 1.0 → 1.18
+      const nearScale = 1.2 + p * 0.65;      // 1.2 → 3.15
 
       layerRefs.current.forEach((el, depthKey) => {
         const depth = depthKey / 100;
-        // 远景退远 / 近景放大冲出
         const scale = farScale * (1 - depth) + nearScale * depth;
 
-        // 视差 + 回头一瞥（近景幅度更大）
         const parX =
           -(tiltRef.current.x + breathX + lookBack) * (4 + depth * 32);
         const parY = -(tiltRef.current.y + breathY) * (3 + depth * 18);
 
-        // 脚步：近景显著沉降+摆动；幅度比入场更猛体现"沉重归途"
         const stepAmpY = (1.6 + depth * 9.0) * intensity;
         const stepAmpX = (0.9 + depth * 5.0) * intensity;
         const stepX = stepSway * stepAmpX;
         const stepY = -stepBob * stepAmpY;
 
-        // 微抖
         const jX = jitterX * (0.8 + depth * 2.6);
         const jY = jitterY * (0.8 + depth * 2.6);
 
