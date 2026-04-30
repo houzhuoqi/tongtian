@@ -4,6 +4,7 @@ import { RitualCard, RitualOverlay } from "./RitualOverlay";
 import { BEI_INFO, throwBei, type BeiResult } from "@/lib/jiaobei";
 import beiFlatImg from "@/assets/bei-flat.png";
 import beiCurveImg from "@/assets/bei-curve.png";
+import beiEdgeImg from "@/assets/bei-edge.png";
 
 interface JiaoBeiThrowProps {
   title: string;
