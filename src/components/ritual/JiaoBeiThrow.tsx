@@ -240,63 +240,73 @@ function BeiToss({
 
   return (
     <div
-      className="absolute left-1/2 bottom-3"
+      className="absolute bottom-3 left-1/2"
       style={{
-        // 抛物线动画 + 阴影同步
-        animation: `bei-toss 1.6s cubic-bezier(0.33,0,0.4,1) ${animDelay} forwards`,
-        // CSS 自定义属性
-        ["--tx0" as string]: `${offsetX}px`,
-        ["--tx-land" as string]: `${landX}px`,
-        transform: `translate3d(${offsetX}px, 0, 0)`,
-        transformStyle: "preserve-3d",
+        // 先把锚点平移到中线（-50% 居中），再叠加抛掷动画
+        // 把锚点位移和动画分两层，避免动画 transform 覆盖居中
+        transform: "translateX(-50%)",
+        width: 96,
+        height: 96,
       }}
     >
-      {/* 阴影（独立元素，跟随地面） */}
-      <span
-        className="absolute left-1/2 top-full h-3 w-20 rounded-[50%] bg-black/70"
-        style={{
-          animation: `bei-shadow 1.6s cubic-bezier(0.33,0,0.4,1) ${animDelay} forwards`,
-          transformOrigin: "center center",
-        }}
-      />
-      {/* 旋转载体 */}
       <div
         className="relative h-24 w-24"
         style={{
-          animation: `bei-spin 1.6s cubic-bezier(0.33,0,0.4,1) ${animDelay} forwards`,
-          ["--spin-x" as string]: `${spinX}deg`,
-          ["--spin-y" as string]: `${spinY}deg`,
-          ["--spin-z" as string]: `${spinZ}deg`,
-          ["--end-x" as string]: `${endX}deg`,
-          ["--end-y" as string]: `${endY}deg`,
-          ["--end-z" as string]: `${endZ}deg`,
+          animation: `bei-toss 1.6s cubic-bezier(0.33,0,0.4,1) ${animDelay} forwards`,
+          ["--tx0" as string]: `${offsetX}px`,
+          ["--tx-land" as string]: `${landX}px`,
+          transform: `translate3d(${offsetX}px, 0, 0)`,
           transformStyle: "preserve-3d",
           willChange: "transform",
         }}
       >
-        {/* 正面（平面朝上 = 看到 flat 图） */}
-        <img
-          src={beiFlatImg}
-          alt=""
-          width={96}
-          height={96}
-          draggable={false}
-          className="absolute inset-0 h-24 w-24 select-none drop-shadow-[0_4px_10px_oklch(0.05_0_0/0.6)]"
-          style={{ backfaceVisibility: "hidden" }}
-        />
-        {/* 反面（凸面朝上 = 看到 curve 图） */}
-        <img
-          src={beiCurveImg}
-          alt=""
-          width={96}
-          height={96}
-          draggable={false}
-          className="absolute inset-0 h-24 w-24 select-none drop-shadow-[0_4px_10px_oklch(0.05_0_0/0.6)]"
+        {/* 阴影（独立元素，跟随地面） */}
+        <span
+          className="absolute left-1/2 top-full h-3 w-20 rounded-[50%] bg-black/70"
           style={{
-            backfaceVisibility: "hidden",
-            transform: "rotateX(180deg)",
+            animation: `bei-shadow 1.6s cubic-bezier(0.33,0,0.4,1) ${animDelay} forwards`,
+            transformOrigin: "center center",
           }}
         />
+        {/* 旋转载体 */}
+        <div
+          className="relative h-24 w-24"
+          style={{
+            animation: `bei-spin 1.6s cubic-bezier(0.33,0,0.4,1) ${animDelay} forwards`,
+            ["--spin-x" as string]: `${spinX}deg`,
+            ["--spin-y" as string]: `${spinY}deg`,
+            ["--spin-z" as string]: `${spinZ}deg`,
+            ["--end-x" as string]: `${endX}deg`,
+            ["--end-y" as string]: `${endY}deg`,
+            ["--end-z" as string]: `${endZ}deg`,
+            transformStyle: "preserve-3d",
+            willChange: "transform",
+          }}
+        >
+          {/* 正面（平面朝上 = 看到 flat 图） */}
+          <img
+            src={beiFlatImg}
+            alt=""
+            width={96}
+            height={96}
+            draggable={false}
+            className="absolute inset-0 h-24 w-24 select-none drop-shadow-[0_4px_10px_oklch(0.05_0_0/0.6)]"
+            style={{ backfaceVisibility: "hidden" }}
+          />
+          {/* 反面（凸面朝上 = 看到 curve 图） */}
+          <img
+            src={beiCurveImg}
+            alt=""
+            width={96}
+            height={96}
+            draggable={false}
+            className="absolute inset-0 h-24 w-24 select-none drop-shadow-[0_4px_10px_oklch(0.05_0_0/0.6)]"
+            style={{
+              backfaceVisibility: "hidden",
+              transform: "rotateX(180deg)",
+            }}
+          />
+        </div>
       </div>
     </div>
   );
