@@ -137,11 +137,13 @@ function Index() {
         )}
 
         {m.ctx.state === "AI_ORACLE" && m.ctx.drawnSign && (
-          <AiOracleChat
-            sign={m.ctx.drawnSign}
-            wish={m.ctx.wish}
-            onBack={m.closeAi}
-          />
+          <ChatErrorBoundary onBack={m.closeAi}>
+            <AiOracleChat
+              sign={m.ctx.drawnSign}
+              wish={m.ctx.wish}
+              onBack={m.closeAi}
+            />
+          </ChatErrorBoundary>
         )}
 
         {m.ctx.state === "TOMB_GRATITUDE" && (
