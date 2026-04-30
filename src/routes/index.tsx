@@ -10,6 +10,7 @@ import { JiaoBeiThrow } from "@/components/ritual/JiaoBeiThrow";
 import { SignShake } from "@/components/ritual/SignShake";
 import { SignPoemView } from "@/components/ritual/SignPoemView";
 import { AiOracleChat } from "@/components/ritual/AiOracleChat";
+import { ChatErrorBoundary } from "@/components/ritual/ChatErrorBoundary";
 import {
   GratitudePanel,
   PalmsThanks,
