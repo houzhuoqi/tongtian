@@ -291,25 +291,6 @@ function BambooSilhouette({
   );
 }
 
-function RoofSilhouette() {
-  return (
-    <svg
-      width="78%"
-      viewBox="0 0 400 90"
-      aria-hidden
-      style={{ filter: "drop-shadow(0 6px 14px oklch(0 0 0 / 0.8))" }}
-    >
-      <path
-        d="M0,70 Q40,50 90,55 L120,30 Q200,4 280,30 L310,55 Q360,50 400,70 L400,90 L0,90 Z"
-        fill="oklch(0.08 0.02 30)"
-      />
-      <path
-        d="M120,30 Q200,4 280,30 L268,38 Q200,18 132,38 Z"
-        fill="oklch(0.05 0.02 30)"
-      />
-    </svg>
-  );
-}
 
 function FrontLeaves() {
   return (
