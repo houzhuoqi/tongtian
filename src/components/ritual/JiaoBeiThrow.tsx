@@ -107,12 +107,12 @@ export function JiaoBeiThrow({
           className="relative mx-auto h-52 w-full overflow-hidden"
           style={{ perspective: "900px" }}
         >
-          {/* 地面渐隐 */}
+          {/* 地面渐隐：旧朱砂暖晕 */}
           <div
             className="pointer-events-none absolute inset-x-0 bottom-0 h-20"
             style={{
               background:
-                "radial-gradient(ellipse at 50% 100%, oklch(0.62 0.16 40 / 0.18) 0%, transparent 70%)",
+                "radial-gradient(ellipse at 50% 100%, oklch(0.52 0.16 30 / 0.22) 0%, transparent 70%)",
             }}
           />
 
