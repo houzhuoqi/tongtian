@@ -128,6 +128,11 @@
     oklch(0.78 0.08 70) 100%
   );
 
+  /* —— 旧朱砂红（筊杯主色，参考实物斑驳红漆） —— */
+  --bei-red: oklch(0.52 0.16 30);
+  --bei-red-glow: oklch(0.62 0.18 32 / 0.4);
+  --aged-tint: oklch(0.45 0.05 60 / 0.10);
+
   --shadow-incense: 0 0 40px oklch(0.62 0.16 40 / 0.5),
     0 0 12px oklch(0.72 0.18 50 / 0.7);
   --shadow-altar: 0 -80px 120px -30px oklch(0.05 0 0 / 0.9) inset,
@@ -356,6 +361,38 @@
   pointer-events: none;
   background: var(--gradient-fog);
 }
+/* 旧氛围叠层：暖褐叠加 + 暗角 + 极轻颗粒 —— 给场景统一“旧”的色偏 */
+.aged-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+  /* 暖褐 multiply：把整体推向旧照片色 */
+  background:
+    radial-gradient(ellipse 120% 95% at 50% 50%, transparent 45%, oklch(0.04 0.01 30 / 0.55) 100%),
+    linear-gradient(180deg, oklch(0.42 0.06 60 / 0.10), oklch(0.30 0.05 50 / 0.14));
+  mix-blend-mode: multiply;
+}
+.aged-overlay::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  /* 极轻噪点：用斜向 repeating gradient 模拟胶片颗粒 */
+  background-image:
+    repeating-linear-gradient(
+      37deg,
+      oklch(0.85 0.03 70 / 0.025) 0 1px,
+      transparent 1px 3px
+    ),
+    repeating-linear-gradient(
+      -53deg,
+      oklch(0.20 0.02 30 / 0.03) 0 1px,
+      transparent 1px 4px
+    );
+  mix-blend-mode: overlay;
+  opacity: 0.6;
+}
+
 .paper-bg {
   background: var(--gradient-paper);
   background-image:

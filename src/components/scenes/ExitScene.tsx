@@ -208,6 +208,9 @@ export function ExitScene({ onDone }: { onDone: () => void }) {
         }}
       />
 
+      {/* 旧氛围叠层 */}
+      <div className="aged-overlay" />
+
       {/* 渐黑 */}
       <div
         className="pointer-events-none absolute inset-0 bg-black transition-opacity duration-[1500ms]"
