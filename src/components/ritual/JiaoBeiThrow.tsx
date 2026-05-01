@@ -205,8 +205,12 @@ function BeiStill({ curved }: { curved: boolean }) {
       alt=""
       width={96}
       height={96}
-      className="h-24 w-24 select-none drop-shadow-[0_10px_18px_oklch(0.05_0_0/0.7)]"
+      className="h-24 w-24 select-none"
       draggable={false}
+      style={{
+        filter:
+          "drop-shadow(0 10px 18px oklch(0.05 0 0 / 0.7)) drop-shadow(0 0 14px oklch(0.62 0.18 32 / 0.28))",
+      }}
     />
   );
 }
