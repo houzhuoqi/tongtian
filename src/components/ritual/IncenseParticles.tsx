@@ -82,10 +82,16 @@ export function IncenseParticles({
         p.vx += (Math.random() - 0.5) * 0.02;
         p.r += 0.08 * devicePixelRatio;
         const t = p.life / p.max;
-        const alpha = Math.sin(t * Math.PI) * 0.18;
+        const alpha =
+          Math.sin(t * Math.PI) * (variant === "mist" ? 0.07 : 0.18);
         const grad = ctx!.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
-        grad.addColorStop(0, `oklch(0.85 0.04 ${p.hue} / ${alpha})`);
-        grad.addColorStop(1, `oklch(0.6 0.02 ${p.hue} / 0)`);
+        if (variant === "mist") {
+          grad.addColorStop(0, `oklch(0.78 0.015 ${p.hue} / ${alpha})`);
+          grad.addColorStop(1, `oklch(0.55 0.01 ${p.hue} / 0)`);
+        } else {
+          grad.addColorStop(0, `oklch(0.85 0.04 ${p.hue} / ${alpha})`);
+          grad.addColorStop(1, `oklch(0.6 0.02 ${p.hue} / 0)`);
+        }
         ctx!.fillStyle = grad;
         ctx!.beginPath();
         ctx!.arc(p.x, p.y, p.r, 0, Math.PI * 2);
@@ -102,7 +108,7 @@ export function IncenseParticles({
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", onResize);
     };
-  }, [density]);
+  }, [density, variant]);
 
   return (
     <canvas
