@@ -267,8 +267,9 @@ function BeiToss({
       >
         {/* 阴影（独立元素，跟随地面） */}
         <span
-          className="absolute left-1/2 top-full h-3 w-20 rounded-[50%] bg-black/70"
+          className="absolute left-1/2 top-full h-3 w-20 rounded-[50%]"
           style={{
+            background: "oklch(0.18 0.02 40 / 0.55)",
             animation: `bei-shadow 1.6s cubic-bezier(0.33,0,0.4,1) ${animDelay} forwards`,
             transformOrigin: "center center",
           }}
@@ -375,7 +376,7 @@ function DustPuff({ originX, seed }: { originX: string; seed: number }) {
             width: p.size,
             height: p.size,
             background:
-              "radial-gradient(circle, oklch(0.78 0.04 70 / 0.9) 0%, oklch(0.55 0.04 60 / 0) 70%)",
+              "radial-gradient(circle, oklch(0.72 0.02 220 / 0.85) 0%, oklch(0.45 0.02 230 / 0) 70%)",
             animation: `dust-puff 1.1s cubic-bezier(0.16,0.84,0.44,1) ${p.delay}ms forwards`,
             ["--dx" as string]: `${p.dx}px`,
             ["--dy" as string]: `${p.dy}px`,
@@ -400,7 +401,7 @@ function ImpactRing({ originX, delay = 0 }: { originX: string; delay?: number })
         width: 80,
         height: 18,
         borderRadius: "50%",
-        border: "1px solid oklch(0.72 0.12 82 / 0.55)",
+        border: "1px solid oklch(0.55 0.16 30 / 0.55)",
         animation: `impact-ring 0.7s cubic-bezier(0.16,0.84,0.44,1) ${delay}ms forwards`,
         transform: "translate(-50%, -50%)",
       }}
