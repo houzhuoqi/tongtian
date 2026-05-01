@@ -54,6 +54,9 @@ export function TombScene({ children }: { children?: React.ReactNode }) {
         }}
       />
 
+      {/* 旧氛围叠层 */}
+      <div className="aged-overlay" />
+
       {children}
     </div>
   );

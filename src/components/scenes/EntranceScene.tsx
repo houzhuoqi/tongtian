@@ -204,6 +204,9 @@ export function EntranceScene({ onDone }: { onDone: () => void }) {
           }}
         />
 
+        {/* 旧氛围叠层（暖褐叠加 + 颗粒） */}
+        <div className="aged-overlay" />
+
         {/* 文案 */}
         <div className="absolute inset-x-0 bottom-[14%] flex flex-col items-center gap-3">
           <div
