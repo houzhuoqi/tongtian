@@ -193,7 +193,7 @@ export function EntranceScene({ onDone }: { onDone: () => void }) {
           <FrontLeaves />
         </div>
 
-        <IncenseParticles density={10} />
+        <IncenseParticles density={14} variant="mist" />
 
         {/* 暗角 */}
         <div

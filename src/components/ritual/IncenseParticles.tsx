@@ -1,7 +1,15 @@
 import { useEffect, useRef } from "react";
 
-// 香烟粒子 + 浮尘
-export function IncenseParticles({ density = 24 }: { density?: number }) {
+// 香烟粒子 / 林间薄雾
+// variant="incense": 从画面底部中心一点升起（适合有香炉的场景）
+// variant="mist":    遍布画面横向漂移（适合户外/林中，没有香源）
+export function IncenseParticles({
+  density = 24,
+  variant = "incense",
+}: {
+  density?: number;
+  variant?: "incense" | "mist";
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -33,6 +41,20 @@ export function IncenseParticles({ density = 24 }: { density?: number }) {
 
     const particles: P[] = [];
     function spawn(): P {
+      if (variant === "mist") {
+        // 林间薄雾：横铺画面，缓慢横向漂移、轻微上浮
+        return {
+          x: w * Math.random(),
+          y: h * (0.35 + Math.random() * 0.6),
+          vy: -(0.04 + Math.random() * 0.08) * devicePixelRatio,
+          vx: (Math.random() - 0.3) * 0.18 * devicePixelRatio,
+          r: (40 + Math.random() * 70) * devicePixelRatio,
+          life: 0,
+          max: 320 + Math.random() * 320,
+          hue: 220 + Math.random() * 30, // 偏冷青灰
+        };
+      }
+      // 香炉烟：底部中心升起
       return {
         x: w * (0.4 + Math.random() * 0.2),
         y: h * (0.78 + Math.random() * 0.08),
@@ -52,7 +74,7 @@ export function IncenseParticles({ density = 24 }: { density?: number }) {
 
     function tick() {
       ctx!.clearRect(0, 0, w, h);
-      ctx!.globalCompositeOperation = "lighter";
+      ctx!.globalCompositeOperation = variant === "mist" ? "screen" : "lighter";
       for (const p of particles) {
         p.life++;
         p.x += p.vx;
@@ -60,10 +82,16 @@ export function IncenseParticles({ density = 24 }: { density?: number }) {
         p.vx += (Math.random() - 0.5) * 0.02;
         p.r += 0.08 * devicePixelRatio;
         const t = p.life / p.max;
-        const alpha = Math.sin(t * Math.PI) * 0.18;
+        const alpha =
+          Math.sin(t * Math.PI) * (variant === "mist" ? 0.07 : 0.18);
         const grad = ctx!.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
-        grad.addColorStop(0, `oklch(0.85 0.04 ${p.hue} / ${alpha})`);
-        grad.addColorStop(1, `oklch(0.6 0.02 ${p.hue} / 0)`);
+        if (variant === "mist") {
+          grad.addColorStop(0, `oklch(0.78 0.015 ${p.hue} / ${alpha})`);
+          grad.addColorStop(1, `oklch(0.55 0.01 ${p.hue} / 0)`);
+        } else {
+          grad.addColorStop(0, `oklch(0.85 0.04 ${p.hue} / ${alpha})`);
+          grad.addColorStop(1, `oklch(0.6 0.02 ${p.hue} / 0)`);
+        }
         ctx!.fillStyle = grad;
         ctx!.beginPath();
         ctx!.arc(p.x, p.y, p.r, 0, Math.PI * 2);
@@ -80,7 +108,7 @@ export function IncenseParticles({ density = 24 }: { density?: number }) {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", onResize);
     };
-  }, [density]);
+  }, [density, variant]);
 
   return (
     <canvas
