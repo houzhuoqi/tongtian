@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { IncenseParticles } from "@/components/ritual/IncenseParticles";
 import entranceBg from "@/assets/scene-entrance.jpg";
-import ambientWind from "@/assets/audio/ambient-wind.mp3";
-import footstepsSfx from "@/assets/audio/footsteps.mp3";
+// 注意：上传的两个文件命名与实际内容相反，这里按"实际声音"使用：
+//   ambient-wind.mp3 实际是脚步声 → 用作 footsteps
+//   footsteps.mp3   实际是风/环境声 → 用作 ambient
+import footstepsSfx from "@/assets/audio/ambient-wind.mp3";
+import ambientWind from "@/assets/audio/footsteps.mp3";
 import { startGlobalAmbient } from "@/hooks/useAmbientAudio";
 
 // 入场动画：第一人称走入山中通天大圣坛庙
