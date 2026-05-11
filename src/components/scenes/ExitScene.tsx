@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import exitBg from "@/assets/scene-exit.jpg";
+import { stopGlobalAmbient } from "@/hooks/useAmbientAudio";
 
 // 离场：镜头反向远去 — 远景缓慢缩小变暗，近景叶片快速向后掠过
 export function ExitScene({ onDone }: { onDone: () => void }) {
@@ -18,6 +19,11 @@ export function ExitScene({ onDone }: { onDone: () => void }) {
     ];
     return () => timers.forEach(clearTimeout);
   }, [onDone]);
+
+  // 离场：环境音整体淡出
+  useEffect(() => {
+    stopGlobalAmbient(1400);
+  }, []);
 
   useEffect(() => {
     const onMove = (e: PointerEvent) => {
