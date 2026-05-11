@@ -24,6 +24,57 @@ export function EntranceScene({ onDone }: { onDone: () => void }) {
     return () => timers.forEach(clearTimeout);
   }, [onDone]);
 
+  // 音效：环境风声（全局，跨场景延续）+ 脚步声（本场景生命周期）
+  useEffect(() => {
+    startGlobalAmbient(ambientWind, 0.32, 1800);
+
+    const steps = new Audio(footstepsSfx);
+    steps.loop = true;
+    steps.volume = 0;
+    let fadeTimer: number | null = null;
+    let cancelled = false;
+
+    const fadeTo = (target: number, ms: number) => {
+      if (fadeTimer != null) window.clearInterval(fadeTimer);
+      const start = steps.volume;
+      const startT = performance.now();
+      fadeTimer = window.setInterval(() => {
+        const t = Math.min(1, (performance.now() - startT) / Math.max(1, ms));
+        steps.volume = Math.max(0, Math.min(1, start + (target - start) * t));
+        if (t >= 1) {
+          if (fadeTimer != null) window.clearInterval(fadeTimer);
+          fadeTimer = null;
+          if (target === 0) steps.pause();
+        }
+      }, 33);
+    };
+
+    const startSteps = () => {
+      if (cancelled) return;
+      const p = steps.play();
+      if (p && typeof p.then === "function") {
+        p.then(() => fadeTo(0.45, 800)).catch(() => {
+          const handler = () => {
+            window.removeEventListener("pointerdown", handler);
+            if (!cancelled) steps.play().then(() => fadeTo(0.45, 800)).catch(() => {});
+          };
+          window.addEventListener("pointerdown", handler, { once: true });
+        });
+      }
+    };
+    const startTimer = window.setTimeout(startSteps, 600);
+    const stopTimer = window.setTimeout(() => fadeTo(0, 700), 5500);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(startTimer);
+      window.clearTimeout(stopTimer);
+      if (fadeTimer != null) window.clearInterval(fadeTimer);
+      steps.pause();
+      steps.src = "";
+    };
+  }, []);
+
   // 输入：指针 / 陀螺仪
   useEffect(() => {
     const onMove = (e: PointerEvent) => {
