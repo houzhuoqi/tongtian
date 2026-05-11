@@ -22,9 +22,56 @@ export function ExitScene({ onDone }: { onDone: () => void }) {
     return () => timers.forEach(clearTimeout);
   }, [onDone]);
 
-  // 离场：环境音整体淡出
+  // 离场：环境音整体淡出 + 脚步声（人在往外走）
   useEffect(() => {
     stopGlobalAmbient(1400);
+
+    const steps = new Audio(footstepsSfx);
+    steps.loop = true;
+    steps.volume = 0;
+    let fadeTimer: number | null = null;
+    let cancelled = false;
+
+    const fadeTo = (target: number, ms: number) => {
+      if (fadeTimer != null) window.clearInterval(fadeTimer);
+      const start = steps.volume;
+      const startT = performance.now();
+      fadeTimer = window.setInterval(() => {
+        const t = Math.min(1, (performance.now() - startT) / Math.max(1, ms));
+        steps.volume = Math.max(0, Math.min(1, start + (target - start) * t));
+        if (t >= 1) {
+          if (fadeTimer != null) window.clearInterval(fadeTimer);
+          fadeTimer = null;
+          if (target === 0) steps.pause();
+        }
+      }, 33);
+    };
+
+    const startSteps = () => {
+      if (cancelled) return;
+      const p = steps.play();
+      if (p && typeof p.then === "function") {
+        p.then(() => fadeTo(0.45, 900)).catch(() => {
+          const handler = () => {
+            window.removeEventListener("pointerdown", handler);
+            if (!cancelled) steps.play().then(() => fadeTo(0.45, 900)).catch(() => {});
+          };
+          window.addEventListener("pointerdown", handler, { once: true });
+        });
+      }
+    };
+    const startTimer = window.setTimeout(startSteps, 200);
+    // 离场后期渐弱：phase 3 在 4800ms 触发渐黑，提前 200ms 开始淡出
+    const stopTimer = window.setTimeout(() => fadeTo(0, 1100), 4600);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(startTimer);
+      window.clearTimeout(stopTimer);
+      if (fadeTimer != null) window.clearInterval(fadeTimer);
+      steps.pause();
+      steps.src = "";
+    };
   }, []);
 
   useEffect(() => {
