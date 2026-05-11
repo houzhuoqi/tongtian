@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import exitBg from "@/assets/scene-exit.jpg";
+// 见 EntranceScene 注释：上传文件命名与实际内容相反
+import footstepsSfx from "@/assets/audio/ambient-wind.mp3";
 import { stopGlobalAmbient } from "@/hooks/useAmbientAudio";
 
 // 离场：镜头反向远去 — 远景缓慢缩小变暗，近景叶片快速向后掠过
