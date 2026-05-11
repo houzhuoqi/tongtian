@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { IncenseParticles } from "@/components/ritual/IncenseParticles";
 import entranceBg from "@/assets/scene-entrance.jpg";
+import ambientWind from "@/assets/audio/ambient-wind.mp3";
+import footstepsSfx from "@/assets/audio/footsteps.mp3";
+import { startGlobalAmbient } from "@/hooks/useAmbientAudio";
 
 // 入场动画：第一人称走入山中通天大圣坛庙
 // 多层视差：远景背景（最慢）/ 中景雾光 / 近景竹影 / 前景叶片（最快）
