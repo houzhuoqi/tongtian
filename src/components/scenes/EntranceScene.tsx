@@ -66,7 +66,7 @@ export function EntranceScene({ onDone }: { onDone: () => void }) {
       }
     };
     const startTimer = window.setTimeout(startSteps, 600);
-    const stopTimer = window.setTimeout(() => fadeTo(0, 700), 5500);
+    const stopTimer = window.setTimeout(() => fadeTo(0, 900), 4400);
 
     return () => {
       cancelled = true;
