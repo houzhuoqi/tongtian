@@ -20,6 +20,11 @@ export function ExitScene({ onDone }: { onDone: () => void }) {
     return () => timers.forEach(clearTimeout);
   }, [onDone]);
 
+  // 离场：环境音整体淡出
+  useEffect(() => {
+    stopGlobalAmbient(1400);
+  }, []);
+
   useEffect(() => {
     const onMove = (e: PointerEvent) => {
       const r = rootRef.current?.getBoundingClientRect();
