@@ -1,16 +1,71 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { RitualButton } from "./RitualButton";
 import { RitualCard, RitualOverlay } from "./RitualOverlay";
 import { drawSign, type SignPoem } from "@/lib/signs";
+import shakeSfx from "@/assets/audio/sign-shake.mp3";
 
 export function SignShake({ onDrawn }: { onDrawn: (sign: SignPoem) => void }) {
   const [shaking, setShaking] = useState(false);
+  const shakeAudioRef = useRef<HTMLAudioElement | null>(null);
+  const drawAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    const a = new Audio(shakeSfx);
+    a.preload = "auto";
+    a.volume = 0.55;
+    shakeAudioRef.current = a;
+    const b = new Audio(shakeSfx);
+    b.preload = "auto";
+    b.volume = 0.7;
+    drawAudioRef.current = b;
+    return () => {
+      a.pause();
+      b.pause();
+      shakeAudioRef.current = null;
+      drawAudioRef.current = null;
+    };
+  }, []);
+
+  function fadeOut(a: HTMLAudioElement, ms: number) {
+    const start = a.volume;
+    const t0 = performance.now();
+    const id = window.setInterval(() => {
+      const t = Math.min(1, (performance.now() - t0) / ms);
+      a.volume = Math.max(0, start * (1 - t));
+      if (t >= 1) {
+        window.clearInterval(id);
+        a.pause();
+      }
+    }, 33);
+  }
 
   function shake() {
     setShaking(true);
+    // 摇签筒音效：从头播放
+    const sa = shakeAudioRef.current;
+    if (sa) {
+      try {
+        sa.currentTime = 0;
+        sa.volume = 0.55;
+        sa.play().catch(() => {});
+      } catch {}
+    }
+    // 抽签瞬间：再叠一个短促的竹签落下声
+    setTimeout(() => {
+      const da = drawAudioRef.current;
+      if (da) {
+        try {
+          da.currentTime = Math.max(0, (da.duration || 1.4) - 0.6);
+          da.volume = 0.7;
+          da.play().catch(() => {});
+        } catch {}
+      }
+    }, 1350);
+
     setTimeout(() => {
       const sign = drawSign();
       setShaking(false);
+      if (sa) fadeOut(sa, 350);
       onDrawn(sign);
     }, 1600);
   }
