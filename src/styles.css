@@ -409,27 +409,27 @@
     transform: translate3d(var(--tx0, 0px), 0px, 0) scale(1);
   }
   18% {
-    transform: translate3d(calc(var(--tx0, 0px) * 0.7), -180px, 0) scale(0.86);
+    transform: translate3d(calc(var(--tx0, 0px) * 0.7), -110px, 0) scale(0.92);
   }
   35% {
-    transform: translate3d(calc(var(--tx0, 0px) * 0.4), -240px, 0) scale(0.78);
+    transform: translate3d(calc(var(--tx0, 0px) * 0.4), -150px, 0) scale(0.86);
   }
   55% {
-    transform: translate3d(calc(var(--tx0, 0px) * 0.1), -160px, 0) scale(0.84);
+    transform: translate3d(calc(var(--tx0, 0px) * 0.1), -100px, 0) scale(0.9);
   }
   72% {
     transform: translate3d(var(--tx-land, 0px), 0px, 0) scale(1.02);
   }
   /* 第一次弹跳 */
   80% {
-    transform: translate3d(var(--tx-land, 0px), -34px, 0) scale(0.98);
+    transform: translate3d(var(--tx-land, 0px), -22px, 0) scale(0.98);
   }
   88% {
     transform: translate3d(var(--tx-land, 0px), 0px, 0) scale(1.04);
   }
   /* 第二次微弹 */
   93% {
-    transform: translate3d(var(--tx-land, 0px), -10px, 0) scale(1);
+    transform: translate3d(var(--tx-land, 0px), -6px, 0) scale(1);
   }
   100% {
     transform: translate3d(var(--tx-land, 0px), 0px, 0) scale(1);
