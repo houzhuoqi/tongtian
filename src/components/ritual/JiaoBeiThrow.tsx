@@ -62,18 +62,23 @@ export function JiaoBeiThrow({
     setPhase("throwing");
     setTossKey((k) => k + 1);
 
-    const a = throwAudioRef.current;
-    if (a) {
-      try {
-        a.currentTime = 0;
-        a.volume = 0.7;
-        a.play().catch(() => {});
-      } catch {}
-    }
-
     // 落地时刻 ≈ 抛掷动画 72%（约 1150ms）
     const LAND_MS = 1150;
     const TOTAL_MS = 1600;
+
+    // 音效：让"落地撞击"的瞬间与视觉同步
+    // 该 mp3 主要是木块撞击地面的声响（前段几乎无引子），
+    // 因此延迟到接近落地时再播放，留 60ms 给音频起音
+    const a = throwAudioRef.current;
+    if (a) {
+      window.setTimeout(() => {
+        try {
+          a.currentTime = 0;
+          a.volume = 0.7;
+          a.play().catch(() => {});
+        } catch {}
+      }, LAND_MS - 60);
+    }
 
     setTimeout(() => {
       setShake(true);
