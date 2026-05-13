@@ -236,8 +236,11 @@ function BeiStill({ curved }: { curved: boolean }) {
       className="h-24 w-24 select-none"
       draggable={false}
       style={{
+        transform: curved
+          ? "perspective(420px) rotateX(18deg) rotateZ(-6deg)"
+          : "perspective(420px) rotateX(14deg) rotateZ(5deg)",
         filter:
-          "drop-shadow(0 10px 18px oklch(0.05 0 0 / 0.7)) drop-shadow(0 0 14px oklch(0.62 0.18 32 / 0.28))",
+          "drop-shadow(0 14px 18px oklch(0.04 0 0 / 0.78)) drop-shadow(0 2px 4px oklch(0.05 0 0 / 0.5)) drop-shadow(0 0 14px oklch(0.62 0.18 32 / 0.22))",
       }}
     />
   );
