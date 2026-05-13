@@ -132,7 +132,7 @@ export function JiaoBeiThrow({
         {/* 舞台 */}
         <div
           ref={stageRef}
-          className="relative mx-auto h-52 w-full overflow-hidden"
+          className="relative mx-auto h-72 w-full overflow-hidden"
           style={{ perspective: "900px" }}
         >
           {/* 地面渐隐：旧朱砂暖晕 */}
