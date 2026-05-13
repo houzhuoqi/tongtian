@@ -1,10 +1,11 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { RitualButton } from "./RitualButton";
 import { RitualCard, RitualOverlay } from "./RitualOverlay";
 import { BEI_INFO, throwBei, type BeiResult } from "@/lib/jiaobei";
 import beiFlatImg from "@/assets/bei-flat.png";
 import beiCurveImg from "@/assets/bei-curve.png";
 import beiEdgeImg from "@/assets/bei-edge.png";
+import throwSfx from "@/assets/audio/jiaobei-throw.mp3";
 
 interface JiaoBeiThrowProps {
   title: string;
