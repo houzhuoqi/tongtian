@@ -42,12 +42,34 @@ export function JiaoBeiThrow({
   // 每次抛掷生成的随机种子（决定旋转角度/落点偏移/翻面次数）
   const [tossKey, setTossKey] = useState(0);
 
+  // 掷筊音效
+  const throwAudioRef = useRef<HTMLAudioElement | null>(null);
+  useEffect(() => {
+    const a = new Audio(throwSfx);
+    a.preload = "auto";
+    a.volume = 0.7;
+    throwAudioRef.current = a;
+    return () => {
+      a.pause();
+      throwAudioRef.current = null;
+    };
+  }, []);
+
   function doThrow() {
     if (phase !== "idle") return;
     const r = throwBei();
     setResult(r);
     setPhase("throwing");
     setTossKey((k) => k + 1);
+
+    const a = throwAudioRef.current;
+    if (a) {
+      try {
+        a.currentTime = 0;
+        a.volume = 0.7;
+        a.play().catch(() => {});
+      } catch {}
+    }
 
     // 落地时刻 ≈ 抛掷动画 72%（约 1150ms）
     const LAND_MS = 1150;
