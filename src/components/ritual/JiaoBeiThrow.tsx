@@ -62,18 +62,23 @@ export function JiaoBeiThrow({
     setPhase("throwing");
     setTossKey((k) => k + 1);
 
-    const a = throwAudioRef.current;
-    if (a) {
-      try {
-        a.currentTime = 0;
-        a.volume = 0.7;
-        a.play().catch(() => {});
-      } catch {}
-    }
-
     // 落地时刻 ≈ 抛掷动画 72%（约 1150ms）
     const LAND_MS = 1150;
     const TOTAL_MS = 1600;
+
+    // 音效：让"落地撞击"的瞬间与视觉同步
+    // 该 mp3 主要是木块撞击地面的声响（前段几乎无引子），
+    // 因此延迟到接近落地时再播放，留 60ms 给音频起音
+    const a = throwAudioRef.current;
+    if (a) {
+      window.setTimeout(() => {
+        try {
+          a.currentTime = 0;
+          a.volume = 0.7;
+          a.play().catch(() => {});
+        } catch {}
+      }, LAND_MS - 60);
+    }
 
     setTimeout(() => {
       setShake(true);
@@ -127,7 +132,7 @@ export function JiaoBeiThrow({
         {/* 舞台 */}
         <div
           ref={stageRef}
-          className="relative mx-auto h-52 w-full overflow-hidden"
+          className="relative mx-auto h-72 w-full overflow-hidden"
           style={{ perspective: "900px" }}
         >
           {/* 地面渐隐：旧朱砂暖晕 */}
@@ -231,8 +236,11 @@ function BeiStill({ curved }: { curved: boolean }) {
       className="h-24 w-24 select-none"
       draggable={false}
       style={{
+        transform: curved
+          ? "perspective(420px) rotateX(18deg) rotateZ(-6deg)"
+          : "perspective(420px) rotateX(14deg) rotateZ(5deg)",
         filter:
-          "drop-shadow(0 10px 18px oklch(0.05 0 0 / 0.7)) drop-shadow(0 0 14px oklch(0.62 0.18 32 / 0.28))",
+          "drop-shadow(0 14px 18px oklch(0.04 0 0 / 0.78)) drop-shadow(0 2px 4px oklch(0.05 0 0 / 0.5)) drop-shadow(0 0 14px oklch(0.62 0.18 32 / 0.22))",
       }}
     />
   );
