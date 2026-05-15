@@ -1,47 +1,53 @@
-## 方案
+## 背景
 
-把两段上传的 mp3 接入入场/离场动画：环境音作为持续氛围底，脚步声跟随入场镜头节奏。
+我在 `src/assets/` 下找到的 `bei-flat.png`（平面/背面）和 `bei-curve.png`（凸面/正面）就是 5月13号那张实物筊照片处理出来的。下面以这两张为基底来产出多角度视图。
 
-### 1. 资源接入
-- 复制到项目：
-  - `user-uploads://A_light_ambient_soun_2-1778484651121.mp3` → `src/assets/audio/ambient-wind.mp3`
-  - `user-uploads://Gentle_wind_rustling_3-1778485011814.mp3` → `src/assets/audio/footsteps.mp3`
-- 用 Vite ES 模块方式 import，确保打包。
+如果你说的不是这张，请直接重新发一张图给我，我以新图为基底重做即可。
 
-### 2. 新增 hook：`src/hooks/useAmbientAudio.ts`
-- 通用 hook，封装：`new Audio(src)`、`loop`、`volume`、淡入 / 淡出（用 `setInterval` 在 N ms 内插值音量）、组件 unmount 自动停止与释放。
-- 暴露 `play({ targetVolume, fadeMs })` / `fadeOut(ms)`。
-- 处理浏览器自动播放策略：第一次 `play()` 失败时挂一次性 `pointerdown` 监听，用户首次交互后再启动（仪式入口本身就有点击交互，体验自然）。
+## 目标
 
-### 3. `EntranceScene.tsx`
-- 挂载时：
-  - 环境音 `ambient-wind`：fadeIn 1500ms，目标音量 0.35，循环。
-  - 脚步声 `footsteps`：延迟 ~600ms（与画面"开始走"对齐）后 fadeIn 800ms 至 0.5，循环；如果脚步音频片段较短，循环刚好。
-- 当 `phase >= 3`（末段过渡黑场）开始时：
-  - 脚步声 fadeOut 700ms（停下来）。
-  - 环境音保持低音量延续（不在此处停，给场景过渡留连贯感）。
-- 组件 unmount 时停脚步；环境音留给后续场景或在 ExitScene 中淡出。
+围绕筊的"长轴"做翻转（这是真实掷筊时的主要翻动方向），产出 8 帧 22.5° 间隔的视图，覆盖 0°–157.5°。另外半圈（180°–337.5°）在动画中用同一组帧 + 翻转/反向播放复用，无需重复生成。
 
-### 4. 跨场景的环境音连续性
-为了避免每次场景切换都重新淡入造成"断层"，环境音放在更高一级（`RitualOverlay` 或路由根）会更自然。但当前最小改动方案：
-- 在 `EntranceScene` 启动环境音并把 `Audio` 实例挂到 `window.__ambient`（简单全局引用）。
-- `ExitScene` 挂载时检查 `window.__ambient`，如有则 fadeOut 1200ms 并清掉；没有就不做事。
-- 这样不需要大改组件树，也能保证"入场起 → 离场落"的全程氛围音。
+```text
+帧序号    角度       看到的样子
+00       0°        平面朝上（背面全貌）
+01       22.5°     平面微倾，下沿露出一点厚度
+02       45°       半侧面，开始能看到凸面的边缘
+03       67.5°     接近侧立，主要是边缘 + 厚度
+04       90°       完全侧立（edge 视图）
+05       112.5°    凸面开始翻上来
+06       135°      凸面大部分朝上
+07       157.5°    凸面接近完全朝上
+（180°）  对称等价于 00 翻转，复用即可
+```
 
-（如果你希望更干净的架构，我可以改为放进 `RitualOverlay` 里用 Context 管，但代码改动会更大。）
+## 生成方式
 
-### 5. ExitScene 联动
-- 挂载时：
-  - 调用全局环境音 fadeOut 1200ms。
-  - 不再播脚步声（离场是镜头远去，已经不需要"走"的脚步节奏；如果你想保留几步渐弱的脚步，告诉我我加上）。
+用 `imagegen--edit_image`，以 `bei-curve.png` + `bei-flat.png` 同时作为输入，让模型理解"这是同一个木质红色筊的两面"，然后逐帧出 8 张：
 
-### 文件改动清单
-- 新增：`src/assets/audio/ambient-wind.mp3`、`src/assets/audio/footsteps.mp3`
-- 新增：`src/hooks/useAmbientAudio.ts`
-- 编辑：`src/components/scenes/EntranceScene.tsx`（挂载播放 + phase 切换控制脚步）
-- 编辑：`src/components/scenes/ExitScene.tsx`（环境音淡出）
+- 输出尺寸：512×512，透明背景，居中，统一光照（顶光 + 暖色环境反弹），保持木纹斑驳和红漆掉色质感一致。
+- 文件命名：`src/assets/bei/frame-00.png` … `frame-07.png`
+- 每帧 prompt 模板大致：
+  > "Same weathered red lacquered wooden crescent block (jiaobei) as in the reference photos, photographed from a fixed camera, the block rotated <X>° around its long horizontal axis. Plain transparent background, soft top-down studio light, consistent material and wear pattern across all frames."
 
-### 不在范围
-- 不改运镜/物理参数
-- 不改 AI / 数据库 / 路由
-- 不动其他场景视觉
+8 帧会顺序生成（不并行，避免风格漂移）。生成完后我会拼一张 sprite 预览给你检查一致性。
+
+## 确认环节（动画暂不动）
+
+按你"等我看到多角度图后再决定"的要求，这一轮我**只产出图、不改动画代码**。预览出来后你告诉我：
+
+1. 8 帧风格是否一致、是否需要重出某几帧
+2. 动画走哪种路线（sprite 序列帧 / 仍用 CSS 3D 但替换贴图 / 其它）
+
+确认后再单独提一个动画改造方案。
+
+## 文件改动清单（本轮）
+
+- 新增：`src/assets/bei/frame-00.png` … `frame-07.png`
+- 新增（临时预览）：`/mnt/documents/bei-frames-preview.png`（拼图，方便你一眼对比）
+
+## 不在范围
+
+- 不修改 `JiaoBeiThrow.tsx` 或 `styles.css` 的动画
+- 不删除现有 `bei-flat.png` / `bei-curve.png` / `bei-edge.png`（动画切换前还要靠它们）
+- 不动音效、其它场景
