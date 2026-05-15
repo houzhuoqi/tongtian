@@ -418,21 +418,19 @@
     transform: translate3d(calc(var(--tx0, 0px) * 0.1), -100px, 0) scale(0.9);
   }
   72% {
-    transform: translate3d(var(--tx-land, 0px), 0px, 0) scale(1.02);
+    transform: translate3d(var(--tx-land, 0px), 0px, 0) scale(1.02) rotate(var(--rot-z, 0deg));
   }
-  /* 第一次弹跳 */
   80% {
-    transform: translate3d(var(--tx-land, 0px), -22px, 0) scale(0.98);
+    transform: translate3d(var(--tx-land, 0px), -22px, 0) scale(0.98) rotate(var(--rot-z, 0deg));
   }
   88% {
-    transform: translate3d(var(--tx-land, 0px), 0px, 0) scale(1.04);
+    transform: translate3d(var(--tx-land, 0px), 0px, 0) scale(1.04) rotate(var(--rot-z, 0deg));
   }
-  /* 第二次微弹 */
   93% {
-    transform: translate3d(var(--tx-land, 0px), -6px, 0) scale(1);
+    transform: translate3d(var(--tx-land, 0px), -6px, 0) scale(1) rotate(var(--rot-z, 0deg));
   }
   100% {
-    transform: translate3d(var(--tx-land, 0px), 0px, 0) scale(1);
+    transform: translate3d(var(--tx-land, 0px), 0px, 0) scale(1) rotate(var(--rot-z, 0deg));
   }
 }
 
