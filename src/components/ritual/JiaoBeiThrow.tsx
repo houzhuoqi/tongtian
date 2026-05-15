@@ -2,9 +2,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { RitualButton } from "./RitualButton";
 import { RitualCard, RitualOverlay } from "./RitualOverlay";
 import { BEI_INFO, throwBei, type BeiResult } from "@/lib/jiaobei";
-import beiFlatImg from "@/assets/bei-flat.png";
-import beiCurveImg from "@/assets/bei-curve.png";
-import beiEdgeImg from "@/assets/bei-edge.png";
+import view0 from "@/assets/bei-real/view-0.png"; // ~30°  flat-back tilted
+import view1 from "@/assets/bei-real/view-1.png"; // ~135° red dome 3/4
+import view2 from "@/assets/bei-real/view-2.png"; // 90°   edge
+import view3 from "@/assets/bei-real/view-3.png"; // 90°   edge mirror
+import view4 from "@/assets/bei-real/view-4.png"; // ~75°  low red profile
+import view5 from "@/assets/bei-real/view-5.png"; // 0°    flat back top-down
+import view6 from "@/assets/bei-real/view-6.png"; // ~160° red dome up
 import throwSfx from "@/assets/audio/jiaobei-throw.mp3";
 
 interface JiaoBeiThrowProps {
@@ -20,10 +24,18 @@ type Phase = "idle" | "throwing" | "landed" | "result";
 
 // 单只筊最终落到的"面"：true = 凸面朝上，false = 平面朝上
 function facesForResult(r: BeiResult): [boolean, boolean] {
-  if (r === "sheng") return [false, true]; // 一平一凸
-  if (r === "xiao") return [false, false]; // 双平
-  return [true, true]; // 双凸
+  if (r === "sheng") return [false, true];
+  if (r === "xiao") return [false, false];
+  return [true, true];
 }
+
+// 围绕长轴旋转的帧序列：0° → 180°
+// 0:flat-up  1:30°  2:75°  3:edge  4:135°  5:red-up
+const FLIP_FRAMES = [view5, view0, view4, view2, view1, view6];
+// 备用边视图，用于半翻随机走另一侧
+const FLIP_FRAMES_ALT = [view5, view0, view4, view3, view1, view6];
+const FLAT_REST = view5;
+const RED_REST = view6;
 
 export function JiaoBeiThrow({
   title,
@@ -37,12 +49,8 @@ export function JiaoBeiThrow({
   const [result, setResult] = useState<BeiResult | null>(null);
   const [shake, setShake] = useState(false);
   const [showDust, setShowDust] = useState(false);
-  const stageRef = useRef<HTMLDivElement>(null);
-
-  // 每次抛掷生成的随机种子（决定旋转角度/落点偏移/翻面次数）
   const [tossKey, setTossKey] = useState(0);
 
-  // 掷筊音效
   const throwAudioRef = useRef<HTMLAudioElement | null>(null);
   useEffect(() => {
     const a = new Audio(throwSfx);
@@ -62,13 +70,9 @@ export function JiaoBeiThrow({
     setPhase("throwing");
     setTossKey((k) => k + 1);
 
-    // 落地时刻 ≈ 抛掷动画 72%（约 1150ms）
     const LAND_MS = 1150;
     const TOTAL_MS = 1600;
 
-    // 音效：让"落地撞击"的瞬间与视觉同步
-    // 该 mp3 主要是木块撞击地面的声响（前段几乎无引子），
-    // 因此延迟到接近落地时再播放，留 60ms 给音频起音
     const a = throwAudioRef.current;
     if (a) {
       window.setTimeout(() => {
@@ -129,13 +133,10 @@ export function JiaoBeiThrow({
           )}
         </div>
 
-        {/* 舞台 */}
         <div
-          ref={stageRef}
           className="relative mx-auto h-72 w-full overflow-hidden"
           style={{ perspective: "900px" }}
         >
-          {/* 地面渐隐：旧朱砂暖晕 */}
           <div
             className="pointer-events-none absolute inset-x-0 bottom-0 h-20"
             style={{
@@ -144,15 +145,13 @@ export function JiaoBeiThrow({
             }}
           />
 
-          {/* idle：静态预览 */}
           {phase === "idle" && (
-            <div className="absolute inset-0 flex items-end justify-center gap-6 pb-2">
-              <BeiStill curved={false} />
-              <BeiStill curved={true} />
+            <div className="absolute inset-0 flex items-end justify-center gap-8 pb-3">
+              <BeiStill src={FLAT_REST} rot={-6} />
+              <BeiStill src={RED_REST} rot={5} />
             </div>
           )}
 
-          {/* throwing / landed / result：两只筊各自完成抛掷 */}
           {phase !== "idle" && result && (
             <>
               <BeiToss
@@ -171,7 +170,6 @@ export function JiaoBeiThrow({
                 delay={80}
               />
 
-              {/* 尘粒 + 冲击 */}
               {showDust && (
                 <>
                   <DustPuff originX="calc(50% - 46px)" seed={tossKey} />
@@ -183,7 +181,6 @@ export function JiaoBeiThrow({
             </>
           )}
 
-          {/* result 文案 */}
           {phase === "result" && result && (
             <div className="pointer-events-none absolute inset-x-0 bottom-1 text-center animate-fade-in">
               <div
@@ -225,28 +222,24 @@ export function JiaoBeiThrow({
   );
 }
 
-/* —— 静态筊（idle 预览） —— */
-function BeiStill({ curved }: { curved: boolean }) {
+/* —— 静态预览 —— */
+function BeiStill({ src, rot }: { src: string; rot: number }) {
   return (
     <img
-      src={curved ? beiCurveImg : beiFlatImg}
+      src={src}
       alt=""
-      width={96}
-      height={96}
-      className="h-24 w-24 select-none"
+      className="h-24 w-auto select-none"
       draggable={false}
       style={{
-        transform: curved
-          ? "perspective(420px) rotateX(18deg) rotateZ(-6deg)"
-          : "perspective(420px) rotateX(14deg) rotateZ(5deg)",
+        transform: `rotate(${rot}deg)`,
         filter:
-          "drop-shadow(0 14px 18px oklch(0.04 0 0 / 0.78)) drop-shadow(0 2px 4px oklch(0.05 0 0 / 0.5)) drop-shadow(0 0 14px oklch(0.62 0.18 32 / 0.22))",
+          "drop-shadow(0 14px 18px oklch(0.04 0 0 / 0.55)) drop-shadow(0 2px 4px oklch(0.05 0 0 / 0.45))",
       }}
     />
   );
 }
 
-/* —— 一只飞行的筊：用两层卡片正反面（3D flip） —— */
+/* —— 抛掷中的一只筊：sprite 帧序列 + 抛物线轨迹 —— */
 function BeiToss({
   seed,
   landFace,
@@ -256,30 +249,56 @@ function BeiToss({
 }: {
   seed: number;
   landFace: boolean; // true=凸面朝上 / false=平面朝上
-  offsetX: number; // 起飞 X 偏移
-  landX: number; // 落地 X 偏移
+  offsetX: number;
+  landX: number;
   delay?: number;
 }) {
-  // 伪随机
   const rnd = useMemo(() => mulberry32(seed), [seed]);
-  const spinX = 540 + Math.floor(rnd() * 540); // 540~1080
-  const spinY = 360 + Math.floor(rnd() * 540);
-  const spinZ = 180 + Math.floor(rnd() * 360);
 
-  // 落地时让旋转停在"正面/反面朝上"
-  // 平面朝上：rotateX 0 / 凸面朝上：rotateX 180
-  const endX = landFace ? 180 : 0;
-  const endY = 0;
-  const endZ = Math.floor(rnd() * 30) - 15; // 落地时小角度斜放
+  // 该次抛掷使用的帧池：随机选 alt/正
+  const framePool = useMemo(() => (rnd() > 0.5 ? FLIP_FRAMES : FLIP_FRAMES_ALT), [rnd]);
+  const finalFrame = landFace ? RED_REST : FLAT_REST;
 
-  const animDelay = `${delay}ms`;
+  // 生成 sprite 时间表：在 0~LAND_MS 之间切换帧，越接近落地间隔越大（减速）
+  const LAND_MS = 1150;
+  const schedule = useMemo(() => {
+    const arr: { t: number; src: string }[] = [];
+    let t = 0;
+    let i = Math.floor(rnd() * framePool.length);
+    let dir = rnd() > 0.5 ? 1 : -1;
+    // 起始更快(40ms)，临近落地更慢(180ms)
+    while (t < LAND_MS - 80) {
+      const progress = t / LAND_MS;
+      const interval = 40 + progress * progress * 160;
+      arr.push({ t, src: framePool[((i % framePool.length) + framePool.length) % framePool.length] });
+      i += dir;
+      // 偶尔反转方向，模拟翻滚不规则
+      if (rnd() < 0.08) dir = -dir;
+      t += interval;
+    }
+    arr.push({ t: LAND_MS, src: finalFrame });
+    return arr;
+  }, [rnd, framePool, finalFrame]);
+
+  const [frameSrc, setFrameSrc] = useState<string>(schedule[0].src);
+
+  useEffect(() => {
+    const timers: number[] = [];
+    schedule.forEach((step) => {
+      timers.push(
+        window.setTimeout(() => setFrameSrc(step.src), step.t + delay),
+      );
+    });
+    return () => timers.forEach((id) => window.clearTimeout(id));
+  }, [schedule, delay]);
+
+  // 每只筊小幅随机平面旋转（非翻面，仅落地姿态）
+  const endRotZ = Math.floor(rnd() * 30) - 15;
 
   return (
     <div
       className="absolute bottom-3 left-1/2"
       style={{
-        // 先把锚点平移到中线（-50% 居中），再叠加抛掷动画
-        // 把锚点位移和动画分两层，避免动画 transform 覆盖居中
         transform: "translateX(-50%)",
         width: 96,
         height: 96,
@@ -288,95 +307,38 @@ function BeiToss({
       <div
         className="relative h-24 w-24"
         style={{
-          animation: `bei-toss 1.6s cubic-bezier(0.33,0,0.4,1) ${animDelay} forwards`,
+          animation: `bei-toss 1.6s cubic-bezier(0.33,0,0.4,1) ${delay}ms forwards`,
           ["--tx0" as string]: `${offsetX}px`,
           ["--tx-land" as string]: `${landX}px`,
-          transform: `translate3d(${offsetX}px, 0, 0)`,
-          transformStyle: "preserve-3d",
+          ["--rot-z" as string]: `${endRotZ}deg`,
           willChange: "transform",
         }}
       >
-        {/* 阴影（独立元素，跟随地面） */}
+        {/* 阴影 */}
         <span
-          className="absolute left-1/2 top-full h-3 w-20 rounded-[50%]"
+          className="absolute left-1/2 top-full h-3 w-20 rounded-[50%] -translate-x-1/2"
           style={{
             background: "oklch(0.18 0.02 40 / 0.55)",
-            animation: `bei-shadow 1.6s cubic-bezier(0.33,0,0.4,1) ${animDelay} forwards`,
+            animation: `bei-shadow 1.6s cubic-bezier(0.33,0,0.4,1) ${delay}ms forwards`,
             transformOrigin: "center center",
           }}
         />
-        {/* 旋转载体 */}
-        <div
-          className="relative h-24 w-24"
+        {/* 当前帧 */}
+        <img
+          src={frameSrc}
+          alt=""
+          draggable={false}
+          className="absolute left-1/2 top-1/2 h-24 w-auto -translate-x-1/2 -translate-y-1/2 select-none"
           style={{
-            animation: `bei-spin 1.6s cubic-bezier(0.33,0,0.4,1) ${animDelay} forwards`,
-            ["--spin-x" as string]: `${spinX}deg`,
-            ["--spin-y" as string]: `${spinY}deg`,
-            ["--spin-z" as string]: `${spinZ}deg`,
-            ["--end-x" as string]: `${endX}deg`,
-            ["--end-y" as string]: `${endY}deg`,
-            ["--end-z" as string]: `${endZ}deg`,
-            transformStyle: "preserve-3d",
-            willChange: "transform",
+            filter:
+              "drop-shadow(0 6px 10px oklch(0.05 0 0 / 0.55)) drop-shadow(0 1px 2px oklch(0.05 0 0 / 0.4))",
           }}
-        >
-          {/* 正面（平面朝上 = 看到 flat 图） */}
-          <img
-            src={beiFlatImg}
-            alt=""
-            width={96}
-            height={96}
-            draggable={false}
-            className="absolute inset-0 h-24 w-24 select-none drop-shadow-[0_4px_10px_oklch(0.05_0_0/0.6)]"
-            style={{ backfaceVisibility: "hidden" }}
-          />
-          {/* 反面（凸面朝上 = 看到 curve 图） */}
-          <img
-            src={beiCurveImg}
-            alt=""
-            width={96}
-            height={96}
-            draggable={false}
-            className="absolute inset-0 h-24 w-24 select-none drop-shadow-[0_4px_10px_oklch(0.05_0_0/0.6)]"
-            style={{
-              backfaceVisibility: "hidden",
-              transform: "rotateX(180deg)",
-            }}
-          />
-          {/* 侧面薄片：rotateX(90°) — 翻转过半圈时短暂出现，强化"立体厚度" */}
-          <img
-            src={beiEdgeImg}
-            alt=""
-            width={96}
-            height={96}
-            draggable={false}
-            className="absolute inset-0 h-24 w-24 select-none"
-            style={{
-              backfaceVisibility: "hidden",
-              transform: "rotateX(90deg) translateZ(0)",
-              opacity: 0.95,
-            }}
-          />
-          <img
-            src={beiEdgeImg}
-            alt=""
-            width={96}
-            height={96}
-            draggable={false}
-            className="absolute inset-0 h-24 w-24 select-none"
-            style={{
-              backfaceVisibility: "hidden",
-              transform: "rotateX(-90deg) scaleY(-1) translateZ(0)",
-              opacity: 0.95,
-            }}
-          />
-        </div>
+        />
       </div>
     </div>
   );
 }
 
-/* —— 尘粒爆发 —— */
 function DustPuff({ originX, seed }: { originX: string; seed: number }) {
   const particles = useMemo(() => {
     const rnd = mulberry32(seed);
@@ -421,7 +383,6 @@ function DustPuff({ originX, seed }: { originX: string; seed: number }) {
   );
 }
 
-/* —— 落地冲击波纹 —— */
 function ImpactRing({ originX, delay = 0 }: { originX: string; delay?: number }) {
   return (
     <span
@@ -440,7 +401,6 @@ function ImpactRing({ originX, delay = 0 }: { originX: string; delay?: number })
   );
 }
 
-/* —— 伪随机 —— */
 function mulberry32(a: number) {
   return function () {
     let t = (a += 0x6d2b79f5);
