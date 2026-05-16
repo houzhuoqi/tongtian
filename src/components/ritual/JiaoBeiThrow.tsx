@@ -2,13 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { RitualButton } from "./RitualButton";
 import { RitualCard, RitualOverlay } from "./RitualOverlay";
 import { BEI_INFO, throwBei, type BeiResult } from "@/lib/jiaobei";
-import view0 from "@/assets/bei-real/view-0.png"; // ~30°  flat-back tilted
-import view1 from "@/assets/bei-real/view-1.png"; // ~135° red dome 3/4
-import view2 from "@/assets/bei-real/view-2.png"; // 90°   edge
-import view3 from "@/assets/bei-real/view-3.png"; // 90°   edge mirror
-import view4 from "@/assets/bei-real/view-4.png"; // ~75°  low red profile
-import view5 from "@/assets/bei-real/view-5.png"; // 0°    flat back top-down
-import view6 from "@/assets/bei-real/view-6.png"; // ~160° red dome up
+import view0 from "@/assets/bei-real/view-0.png"; // 0°   flat-back top-down
+import view1 from "@/assets/bei-real/view-1.png"; // 135° red dome 3/4 (≈ red up)
+import view2 from "@/assets/bei-real/view-2.png"; // 90°  edge view A
+import view3 from "@/assets/bei-real/view-3.png"; // 270° edge view B (mirror)
 import throwSfx from "@/assets/audio/jiaobei-throw.mp3";
 
 interface JiaoBeiThrowProps {
@@ -29,13 +26,11 @@ function facesForResult(r: BeiResult): [boolean, boolean] {
   return [true, true];
 }
 
-// 围绕长轴旋转的帧序列：0° → 180°
-// 0:flat-up  1:30°  2:75°  3:edge  4:135°  5:red-up
-const FLIP_FRAMES = [view5, view0, view4, view2, view1, view6];
-// 备用边视图，用于半翻随机走另一侧
-const FLIP_FRAMES_ALT = [view5, view0, view4, view3, view1, view6];
-const FLAT_REST = view5;
-const RED_REST = view6;
+// 围绕长轴翻滚：flat → edgeA → red → edgeB → flat（一周 360°）
+const FLIP_FORWARD = [view0, view2, view1, view3];
+const FLIP_REVERSE = [view0, view3, view1, view2];
+const FLAT_REST = view0;
+const RED_REST = view1;
 
 export function JiaoBeiThrow({
   title,
@@ -256,7 +251,7 @@ function BeiToss({
   const rnd = useMemo(() => mulberry32(seed), [seed]);
 
   // 该次抛掷使用的帧池：随机选 alt/正
-  const framePool = useMemo(() => (rnd() > 0.5 ? FLIP_FRAMES : FLIP_FRAMES_ALT), [rnd]);
+  const framePool = useMemo(() => (rnd() > 0.5 ? FLIP_FORWARD : FLIP_REVERSE), [rnd]);
   const finalFrame = landFace ? RED_REST : FLAT_REST;
 
   // 生成 sprite 时间表：在 0~LAND_MS 之间切换帧，越接近落地间隔越大（减速）
@@ -266,14 +261,13 @@ function BeiToss({
     let t = 0;
     let i = Math.floor(rnd() * framePool.length);
     let dir = rnd() > 0.5 ? 1 : -1;
-    // 起始更快(40ms)，临近落地更慢(180ms)
-    while (t < LAND_MS - 80) {
+    // 起始更快(55ms)，临近落地更慢(190ms)，体现减速
+    while (t < LAND_MS - 90) {
       const progress = t / LAND_MS;
-      const interval = 40 + progress * progress * 160;
+      const interval = 55 + progress * progress * 135;
       arr.push({ t, src: framePool[((i % framePool.length) + framePool.length) % framePool.length] });
       i += dir;
-      // 偶尔反转方向，模拟翻滚不规则
-      if (rnd() < 0.08) dir = -dir;
+      if (rnd() < 0.06) dir = -dir;
       t += interval;
     }
     arr.push({ t: LAND_MS, src: finalFrame });
@@ -294,6 +288,9 @@ function BeiToss({
 
   // 每只筊小幅随机平面旋转（非翻面，仅落地姿态）
   const endRotZ = Math.floor(rnd() * 30) - 15;
+  // 抛掷过程中的平面自旋角度（飞行中的方向变化）
+  const spinFrom = Math.floor(rnd() * 40) - 60; // -60..-20
+  const spinTo = Math.floor(rnd() * 40) + 20; // 20..60
 
   return (
     <div
@@ -311,6 +308,8 @@ function BeiToss({
           ["--tx0" as string]: `${offsetX}px`,
           ["--tx-land" as string]: `${landX}px`,
           ["--rot-z" as string]: `${endRotZ}deg`,
+          ["--spin-from" as string]: `${spinFrom}deg`,
+          ["--spin-to" as string]: `${spinTo}deg`,
           willChange: "transform",
         }}
       >
