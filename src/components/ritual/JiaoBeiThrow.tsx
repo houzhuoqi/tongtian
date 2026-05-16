@@ -151,8 +151,8 @@ export function JiaoBeiThrow({
 
           {phase === "idle" && (
             <div className="absolute inset-0 flex items-end justify-center gap-8 pb-3">
-              <BeiStill src={FLAT_REST} rot={-6} />
-              <BeiStill src={RED_REST} rot={5} />
+              <BeiStill src={ALL_FRAMES[FLAT_REST]} rot={-6} />
+              <BeiStill src={ALL_FRAMES[RED_REST]} rot={5} />
             </div>
           )}
 
