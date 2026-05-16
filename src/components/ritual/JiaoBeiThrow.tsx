@@ -289,6 +289,9 @@ function BeiToss({
 
   // 每只筊小幅随机平面旋转（非翻面，仅落地姿态）
   const endRotZ = Math.floor(rnd() * 30) - 15;
+  // 抛掷过程中的平面自旋角度（飞行中的方向变化）
+  const spinFrom = Math.floor(rnd() * 40) - 60; // -60..-20
+  const spinTo = Math.floor(rnd() * 40) + 20; // 20..60
 
   return (
     <div
@@ -306,6 +309,8 @@ function BeiToss({
           ["--tx0" as string]: `${offsetX}px`,
           ["--tx-land" as string]: `${landX}px`,
           ["--rot-z" as string]: `${endRotZ}deg`,
+          ["--spin-from" as string]: `${spinFrom}deg`,
+          ["--spin-to" as string]: `${spinTo}deg`,
           willChange: "transform",
         }}
       >
