@@ -406,19 +406,22 @@
 /* 抛物线：translateY 走 sin 曲线，translateX 略漂移 */
 @keyframes bei-toss {
   0% {
-    transform: translate3d(var(--tx0, 0px), 0px, 0) scale(1);
+    transform: translate3d(var(--tx0, 0px), 0px, 0) scale(0.95) rotate(var(--spin-from, -30deg));
   }
-  18% {
-    transform: translate3d(calc(var(--tx0, 0px) * 0.7), -110px, 0) scale(0.92);
+  15% {
+    transform: translate3d(calc(var(--tx0, 0px) * 0.75), -150px, 0) scale(0.9) rotate(calc(var(--spin-from, -30deg) * 0.4));
   }
-  35% {
-    transform: translate3d(calc(var(--tx0, 0px) * 0.4), -150px, 0) scale(0.86);
+  32% {
+    transform: translate3d(calc(var(--tx0, 0px) * 0.45), -210px, 0) scale(0.82) rotate(calc(var(--spin-to, 30deg) * 0.4));
   }
-  55% {
-    transform: translate3d(calc(var(--tx0, 0px) * 0.1), -100px, 0) scale(0.9);
+  50% {
+    transform: translate3d(calc(var(--tx0, 0px) * 0.15), -180px, 0) scale(0.84) rotate(calc(var(--spin-to, 30deg) * 0.7));
+  }
+  65% {
+    transform: translate3d(calc(var(--tx-land, 0px) * 0.6), -80px, 0) scale(0.92) rotate(var(--spin-to, 30deg));
   }
   72% {
-    transform: translate3d(var(--tx-land, 0px), 0px, 0) scale(1.02) rotate(var(--rot-z, 0deg));
+    transform: translate3d(var(--tx-land, 0px), 0px, 0) scale(1.04) rotate(var(--rot-z, 0deg));
   }
   80% {
     transform: translate3d(var(--tx-land, 0px), -22px, 0) scale(0.98) rotate(var(--rot-z, 0deg));
