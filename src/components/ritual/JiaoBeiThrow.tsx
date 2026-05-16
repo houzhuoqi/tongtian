@@ -251,7 +251,7 @@ function BeiToss({
   const rnd = useMemo(() => mulberry32(seed), [seed]);
 
   // 该次抛掷使用的帧池：随机选 alt/正
-  const framePool = useMemo(() => (rnd() > 0.5 ? FLIP_FRAMES : FLIP_FRAMES_ALT), [rnd]);
+  const framePool = useMemo(() => (rnd() > 0.5 ? FLIP_FORWARD : FLIP_REVERSE), [rnd]);
   const finalFrame = landFace ? RED_REST : FLAT_REST;
 
   // 生成 sprite 时间表：在 0~LAND_MS 之间切换帧，越接近落地间隔越大（减速）
