@@ -266,40 +266,48 @@ function BeiToss({
   // 生成 sprite 时间表：在 0~LAND_MS 之间切换帧，越接近落地间隔越大（减速）
   const LAND_MS = 1150;
   const schedule = useMemo(() => {
-    const arr: { t: number; src: string }[] = [];
+    const arr: { t: number; idx: number }[] = [];
     let t = 0;
     let i = Math.floor(rnd() * framePool.length);
     let dir = rnd() > 0.5 ? 1 : -1;
-    // 起始更快(55ms)，临近落地更慢(190ms)，体现减速
     while (t < LAND_MS - 90) {
       const progress = t / LAND_MS;
       const interval = 55 + progress * progress * 135;
-      arr.push({ t, src: framePool[((i % framePool.length) + framePool.length) % framePool.length] });
+      const poolIdx = ((i % framePool.length) + framePool.length) % framePool.length;
+      arr.push({ t, idx: framePool[poolIdx] });
       i += dir;
       if (rnd() < 0.06) dir = -dir;
       t += interval;
     }
-    arr.push({ t: LAND_MS, src: finalFrame });
+    arr.push({ t: LAND_MS, idx: finalFrame });
     return arr;
   }, [rnd, framePool, finalFrame]);
 
-  const [frameSrc, setFrameSrc] = useState<string>(schedule[0].src);
+  const [activeIdx, setActiveIdx] = useState<number>(schedule[0].idx);
 
   useEffect(() => {
-    const timers: number[] = [];
-    schedule.forEach((step) => {
-      timers.push(
-        window.setTimeout(() => setFrameSrc(step.src), step.t + delay),
-      );
-    });
-    return () => timers.forEach((id) => window.clearTimeout(id));
+    let rafId = 0;
+    const start = performance.now() + delay;
+    let cursor = 0;
+    const tick = (now: number) => {
+      const elapsed = now - start;
+      while (cursor < schedule.length && schedule[cursor].t <= elapsed) {
+        setActiveIdx(schedule[cursor].idx);
+        cursor++;
+      }
+      if (cursor < schedule.length) {
+        rafId = requestAnimationFrame(tick);
+      }
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
   }, [schedule, delay]);
 
   // 每只筊小幅随机平面旋转（非翻面，仅落地姿态）
   const endRotZ = Math.floor(rnd() * 30) - 15;
   // 抛掷过程中的平面自旋角度（飞行中的方向变化）
-  const spinFrom = Math.floor(rnd() * 40) - 60; // -60..-20
-  const spinTo = Math.floor(rnd() * 40) + 20; // 20..60
+  const spinFrom = Math.floor(rnd() * 40) - 60;
+  const spinTo = Math.floor(rnd() * 40) + 20;
 
   return (
     <div
@@ -322,7 +330,6 @@ function BeiToss({
           willChange: "transform",
         }}
       >
-        {/* 阴影 */}
         <span
           className="absolute left-1/2 top-full h-3 w-20 rounded-[50%] -translate-x-1/2"
           style={{
@@ -331,17 +338,21 @@ function BeiToss({
             transformOrigin: "center center",
           }}
         />
-        {/* 当前帧 */}
-        <img
-          src={frameSrc}
-          alt=""
-          draggable={false}
-          className="absolute left-1/2 top-1/2 h-24 w-auto -translate-x-1/2 -translate-y-1/2 select-none"
-          style={{
-            filter:
-              "drop-shadow(0 6px 10px oklch(0.05 0 0 / 0.55)) drop-shadow(0 1px 2px oklch(0.05 0 0 / 0.4))",
-          }}
-        />
+        {/* 所有帧叠加，靠 opacity 切换，避免每次解码 PNG */}
+        {ALL_FRAMES.map((src, idx) => (
+          <img
+            key={idx}
+            src={src}
+            alt=""
+            draggable={false}
+            className="absolute left-1/2 top-1/2 h-24 w-auto -translate-x-1/2 -translate-y-1/2 select-none"
+            style={{
+              opacity: idx === activeIdx ? 1 : 0,
+              filter:
+                "drop-shadow(0 6px 10px oklch(0.05 0 0 / 0.55)) drop-shadow(0 1px 2px oklch(0.05 0 0 / 0.4))",
+            }}
+          />
+        ))}
       </div>
     </div>
   );
