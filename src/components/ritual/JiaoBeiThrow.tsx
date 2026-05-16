@@ -261,14 +261,13 @@ function BeiToss({
     let t = 0;
     let i = Math.floor(rnd() * framePool.length);
     let dir = rnd() > 0.5 ? 1 : -1;
-    // 起始更快(40ms)，临近落地更慢(180ms)
-    while (t < LAND_MS - 80) {
+    // 起始更快(55ms)，临近落地更慢(190ms)，体现减速
+    while (t < LAND_MS - 90) {
       const progress = t / LAND_MS;
-      const interval = 40 + progress * progress * 160;
+      const interval = 55 + progress * progress * 135;
       arr.push({ t, src: framePool[((i % framePool.length) + framePool.length) % framePool.length] });
       i += dir;
-      // 偶尔反转方向，模拟翻滚不规则
-      if (rnd() < 0.08) dir = -dir;
+      if (rnd() < 0.06) dir = -dir;
       t += interval;
     }
     arr.push({ t: LAND_MS, src: finalFrame });
