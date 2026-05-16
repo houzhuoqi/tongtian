@@ -27,10 +27,19 @@ function facesForResult(r: BeiResult): [boolean, boolean] {
 }
 
 // 围绕长轴翻滚：flat → edgeA → red → edgeB → flat（一周 360°）
-const FLIP_FORWARD = [view0, view2, view1, view3];
-const FLIP_REVERSE = [view0, view3, view1, view2];
-const FLAT_REST = view0;
-const RED_REST = view1;
+const ALL_FRAMES = [view0, view1, view2, view3];
+const FLIP_FORWARD = [0, 2, 1, 3] as const;
+const FLIP_REVERSE = [0, 3, 1, 2] as const;
+const FLAT_REST = 0;
+const RED_REST = 1;
+
+// 预解码所有帧，避免首帧切换时的解码卡顿
+if (typeof window !== "undefined") {
+  ALL_FRAMES.forEach((src) => {
+    const img = new Image();
+    img.src = src;
+  });
+}
 
 export function JiaoBeiThrow({
   title,
