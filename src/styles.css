@@ -49,7 +49,7 @@
   --animate-scale-in: scale-in 0.4s ease-out;
   --animate-incense-rise: incense-rise 6s linear infinite;
   --animate-bei-tumble: bei-tumble 1.4s cubic-bezier(0.4, 0, 0.2, 1);
-  --animate-bei-toss: bei-toss 1.6s cubic-bezier(0.33, 0, 0.4, 1) forwards;
+  --animate-bei-breath: bei-breath 4.2s ease-in-out infinite;
   --animate-bei-spin: bei-spin 1.6s linear forwards;
   --animate-bei-shadow: bei-shadow 1.6s cubic-bezier(0.33, 0, 0.4, 1) forwards;
   --animate-screen-shake: screen-shake 0.55s cubic-bezier(0.36, 0.07, 0.19, 0.97);
@@ -404,37 +404,10 @@
 
 /* —— 掷筊物理动画 —— */
 /* 抛物线：translateY 走 sin 曲线，translateX 略漂移 */
-@keyframes bei-toss {
-  0% {
-    transform: translate3d(var(--tx0, 0px), 0px, 0) scale(0.95) rotate(var(--spin-from, -30deg));
-  }
-  15% {
-    transform: translate3d(calc(var(--tx0, 0px) * 0.75), -150px, 0) scale(0.9) rotate(calc(var(--spin-from, -30deg) * 0.4));
-  }
-  32% {
-    transform: translate3d(calc(var(--tx0, 0px) * 0.45), -210px, 0) scale(0.82) rotate(calc(var(--spin-to, 30deg) * 0.4));
-  }
-  50% {
-    transform: translate3d(calc(var(--tx0, 0px) * 0.15), -180px, 0) scale(0.84) rotate(calc(var(--spin-to, 30deg) * 0.7));
-  }
-  65% {
-    transform: translate3d(calc(var(--tx-land, 0px) * 0.6), -80px, 0) scale(0.92) rotate(var(--spin-to, 30deg));
-  }
-  72% {
-    transform: translate3d(var(--tx-land, 0px), 0px, 0) scale(1.04) rotate(var(--rot-z, 0deg));
-  }
-  80% {
-    transform: translate3d(var(--tx-land, 0px), -22px, 0) scale(0.98) rotate(var(--rot-z, 0deg));
-  }
-  88% {
-    transform: translate3d(var(--tx-land, 0px), 0px, 0) scale(1.04) rotate(var(--rot-z, 0deg));
-  }
-  93% {
-    transform: translate3d(var(--tx-land, 0px), -6px, 0) scale(1) rotate(var(--rot-z, 0deg));
-  }
-  100% {
-    transform: translate3d(var(--tx-land, 0px), 0px, 0) scale(1) rotate(var(--rot-z, 0deg));
-  }
+/* idle 时筊的轻微呼吸 */
+@keyframes bei-breath {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-1px) scale(1.012); }
 }
 
 /* 翻转：3 轴随机旋转，落地前定格到目标姿态 */
@@ -485,28 +458,11 @@
 
 /* 落地震屏 */
 @keyframes screen-shake {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0);
-  }
-  10% {
-    transform: translate3d(-3px, 4px, 0);
-  }
-  25% {
-    transform: translate3d(4px, -3px, 0);
-  }
-  40% {
-    transform: translate3d(-2px, 2px, 0);
-  }
-  55% {
-    transform: translate3d(2px, -1px, 0);
-  }
-  70% {
-    transform: translate3d(-1px, 1px, 0);
-  }
-  85% {
-    transform: translate3d(1px, 0, 0);
-  }
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  20% { transform: translate3d(-1.5px, 2px, 0); }
+  45% { transform: translate3d(2px, -1px, 0); }
+  70% { transform: translate3d(-1px, 1px, 0); }
+  90% { transform: translate3d(0.5px, 0, 0); }
 }
 
 /* 尘粒：从落点向外飘散 */

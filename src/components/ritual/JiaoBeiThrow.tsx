@@ -2,10 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { RitualButton } from "./RitualButton";
 import { RitualCard, RitualOverlay } from "./RitualOverlay";
 import { BEI_INFO, throwBei, type BeiResult } from "@/lib/jiaobei";
-import view0 from "@/assets/bei-real/view-0.png"; // 0°   flat-back top-down
-import view1 from "@/assets/bei-real/view-1.png"; // 135° red dome 3/4 (≈ red up)
-import view2 from "@/assets/bei-real/view-2.png"; // 90°  edge view A
-import view3 from "@/assets/bei-real/view-3.png"; // 270° edge view B (mirror)
+import view0 from "@/assets/bei-real/view-0.png"; // 0°   平面朝上 (flat-back)
+import view1 from "@/assets/bei-real/view-1.png"; // 135° 红凸朝上 (red dome)
+import view2 from "@/assets/bei-real/view-2.png"; // 90°  侧立 A
+import view3 from "@/assets/bei-real/view-3.png"; // 270° 侧立 B
 import throwSfx from "@/assets/audio/jiaobei-throw.mp3";
 
 interface JiaoBeiThrowProps {
@@ -19,6 +19,12 @@ interface JiaoBeiThrowProps {
 
 type Phase = "idle" | "throwing" | "landed" | "result";
 
+const ALL_FRAMES = [view0, view1, view2, view3];
+const FLAT_REST = 0; // 平面朝上
+const RED_REST = 1; // 红凸朝上
+const EDGE_A = 2;
+const EDGE_B = 3;
+
 // 单只筊最终落到的"面"：true = 凸面朝上，false = 平面朝上
 function facesForResult(r: BeiResult): [boolean, boolean] {
   if (r === "sheng") return [false, true];
@@ -26,20 +32,18 @@ function facesForResult(r: BeiResult): [boolean, boolean] {
   return [true, true];
 }
 
-// 围绕长轴翻滚：flat → edgeA → red → edgeB → flat（一周 360°）
-const ALL_FRAMES = [view0, view1, view2, view3];
-const FLIP_FORWARD = [0, 2, 1, 3] as const;
-const FLIP_REVERSE = [0, 3, 1, 2] as const;
-const FLAT_REST = 0;
-const RED_REST = 1;
-
-// 预解码所有帧，避免首帧切换时的解码卡顿
 if (typeof window !== "undefined") {
   ALL_FRAMES.forEach((src) => {
     const img = new Image();
     img.src = src;
   });
 }
+
+// 整套动画的关键时间
+const FLIGHT_MS = 950;   // 起手 → 落地
+const SLIDE_MS = 260;    // 落地后滑行 + 小翻
+const SETTLE_MS = 220;   // 微微晃动 → 停
+const TOTAL_MS = FLIGHT_MS + SLIDE_MS + SETTLE_MS;
 
 export function JiaoBeiThrow({
   title,
@@ -52,8 +56,9 @@ export function JiaoBeiThrow({
   const [phase, setPhase] = useState<Phase>("idle");
   const [result, setResult] = useState<BeiResult | null>(null);
   const [shake, setShake] = useState(false);
-  const [showDust, setShowDust] = useState(false);
+  const [showDust, setShowDust] = useState<null | { lx: number; rx: number; lDelay: number; rDelay: number }>(null);
   const [tossKey, setTossKey] = useState(0);
+  const [landPoints, setLandPoints] = useState<{ lx: number; rx: number }>({ lx: -46, rx: 46 });
 
   const throwAudioRef = useRef<HTMLAudioElement | null>(null);
   useEffect(() => {
@@ -72,10 +77,21 @@ export function JiaoBeiThrow({
     const r = throwBei();
     setResult(r);
     setPhase("throwing");
-    setTossKey((k) => k + 1);
+    const key = tossKey + 1;
+    setTossKey(key);
 
-    const LAND_MS = 1150;
-    const TOTAL_MS = 1600;
+    // 随机落点（非镜像）
+    const seedL = key * 13 + 1;
+    const seedR = key * 13 + 7;
+    const rndL = mulberry32(seedL);
+    const rndR = mulberry32(seedR);
+    const lx = -30 - rndL() * 45;          // -30 ~ -75
+    const rx = 25 + rndR() * 50;           // 25 ~ 75
+    setLandPoints({ lx, rx });
+
+    // 错峰落地的两次冲击
+    const lLand = FLIGHT_MS;
+    const rLand = FLIGHT_MS + 70 + rndR() * 70;
 
     const a = throwAudioRef.current;
     if (a) {
@@ -85,18 +101,20 @@ export function JiaoBeiThrow({
           a.volume = 0.7;
           a.play().catch(() => {});
         } catch {}
-      }, LAND_MS - 60);
+      }, lLand - 50);
     }
 
-    setTimeout(() => {
-      setShake(true);
-      setShowDust(true);
+    // 灰尘 / 冲击在各自落地瞬间触发
+    window.setTimeout(() => {
+      setShowDust({ lx, rx, lDelay: 0, rDelay: rLand - lLand });
       setPhase("landed");
-    }, LAND_MS);
+    }, lLand);
 
-    setTimeout(() => setShake(false), LAND_MS + 550);
-    setTimeout(() => setShowDust(false), LAND_MS + 1100);
-    setTimeout(() => setPhase("result"), TOTAL_MS + 250);
+    // 屏幕震动只在两次落地之后触发一次，幅度小
+    window.setTimeout(() => setShake(true), rLand + 30);
+    window.setTimeout(() => setShake(false), rLand + 580);
+    window.setTimeout(() => setShowDust(null), rLand + 900);
+    window.setTimeout(() => setPhase("result"), TOTAL_MS + 200);
   }
 
   function next() {
@@ -110,13 +128,9 @@ export function JiaoBeiThrow({
     <RitualOverlay position="center" className="w-[88%] max-w-md">
       <RitualCard className={`space-y-5 ${shake ? "animate-screen-shake" : ""}`}>
         <div className="text-center">
-          <div className="font-display text-xl tracking-[0.4em] text-gold">
-            {title}
-          </div>
+          <div className="font-display text-xl tracking-[0.4em] text-gold">{title}</div>
           {hint && (
-            <div className="mt-2 text-xs tracking-widest text-muted-foreground">
-              {hint}
-            </div>
+            <div className="mt-2 text-xs tracking-widest text-muted-foreground">{hint}</div>
           )}
           {showCount && (
             <div className="mt-3 flex items-center justify-center gap-2">
@@ -138,48 +152,68 @@ export function JiaoBeiThrow({
         </div>
 
         <div
-          className="relative mx-auto h-72 w-full overflow-hidden"
+          className="relative mx-auto h-72 w-full overflow-hidden rounded-md"
           style={{ perspective: "900px" }}
         >
-          <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-20"
-            style={{
-              background:
-                "radial-gradient(ellipse at 50% 100%, oklch(0.52 0.16 30 / 0.22) 0%, transparent 70%)",
-            }}
-          />
+          {/* 供桌台面：透视面 + 木色渐变 */}
+          <AltarSurface />
 
           {phase === "idle" && (
-            <div className="absolute inset-0 flex items-end justify-center gap-8 pb-3">
-              <BeiStill src={ALL_FRAMES[FLAT_REST]} rot={-6} />
-              <BeiStill src={ALL_FRAMES[RED_REST]} rot={5} />
+            <div className="absolute inset-x-0 bottom-6 flex items-end justify-center">
+              {/* 双手捧筊的姿态：略微重叠 */}
+              <div className="relative h-24 w-40">
+                <img
+                  src={ALL_FRAMES[FLAT_REST]}
+                  alt=""
+                  draggable={false}
+                  className="absolute left-2 bottom-0 h-20 w-auto select-none animate-bei-breath"
+                  style={{
+                    transform: "rotate(-8deg)",
+                    filter:
+                      "drop-shadow(0 10px 14px oklch(0.04 0 0 / 0.55)) drop-shadow(0 2px 3px oklch(0.05 0 0 / 0.4))",
+                  }}
+                />
+                <img
+                  src={ALL_FRAMES[RED_REST]}
+                  alt=""
+                  draggable={false}
+                  className="absolute right-2 bottom-1 h-20 w-auto select-none animate-bei-breath"
+                  style={{
+                    transform: "rotate(7deg)",
+                    animationDelay: "0.6s",
+                    filter:
+                      "drop-shadow(0 10px 14px oklch(0.04 0 0 / 0.55)) drop-shadow(0 2px 3px oklch(0.05 0 0 / 0.4))",
+                  }}
+                />
+              </div>
             </div>
           )}
 
           {phase !== "idle" && result && (
             <>
-              <BeiToss
+              <BeiPhysicsToss
                 key={`L-${tossKey}`}
                 seed={tossKey * 13 + 1}
                 landFace={facesForResult(result)[0]}
-                offsetX={-44}
-                landX={-46}
+                startX={-10}
+                landX={landPoints.lx}
+                landDelay={0}
               />
-              <BeiToss
+              <BeiPhysicsToss
                 key={`R-${tossKey}`}
                 seed={tossKey * 13 + 7}
                 landFace={facesForResult(result)[1]}
-                offsetX={44}
-                landX={46}
-                delay={80}
+                startX={10}
+                landX={landPoints.rx}
+                landDelay={90}
               />
 
               {showDust && (
                 <>
-                  <DustPuff originX="calc(50% - 46px)" seed={tossKey} />
-                  <DustPuff originX="calc(50% + 46px)" seed={tossKey + 99} />
-                  <ImpactRing originX="calc(50% - 46px)" />
-                  <ImpactRing originX="calc(50% + 46px)" delay={80} />
+                  <DustPuff originX={`calc(50% + ${showDust.lx}px)`} seed={tossKey} delay={showDust.lDelay} />
+                  <DustPuff originX={`calc(50% + ${showDust.rx}px)`} seed={tossKey + 99} delay={showDust.rDelay} />
+                  <ImpactRing originX={`calc(50% + ${showDust.lx}px)`} delay={showDust.lDelay} />
+                  <ImpactRing originX={`calc(50% + ${showDust.rx}px)`} delay={showDust.rDelay} />
                 </>
               )}
             </>
@@ -187,9 +221,7 @@ export function JiaoBeiThrow({
 
           {phase === "result" && result && (
             <div className="pointer-events-none absolute inset-x-0 bottom-1 text-center animate-fade-in">
-              <div
-                className={`font-display text-xl tracking-[0.5em] ${BEI_INFO[result].tone}`}
-              >
+              <div className={`font-display text-xl tracking-[0.5em] ${BEI_INFO[result].tone}`}>
                 {BEI_INFO[result].name}
               </div>
               <div className="mt-1 text-[11px] tracking-widest text-muted-foreground">
@@ -211,14 +243,10 @@ export function JiaoBeiThrow({
             </>
           )}
           {(phase === "throwing" || phase === "landed") && (
-            <div className="text-xs tracking-widest text-muted-foreground">
-              筊落塵中…
-            </div>
+            <div className="text-xs tracking-widest text-muted-foreground">筊落塵中…</div>
           )}
           {phase === "result" && result && (
-            <RitualButton onClick={next}>
-              {result === "sheng" ? "領旨" : "再擲"}
-            </RitualButton>
+            <RitualButton onClick={next}>{result === "sheng" ? "領旨" : "再擲"}</RitualButton>
           )}
         </div>
       </RitualCard>
@@ -226,159 +254,227 @@ export function JiaoBeiThrow({
   );
 }
 
-/* —— 静态预览 —— */
-function BeiStill({ src, rot }: { src: string; rot: number }) {
+/* —— 供桌台面 —— */
+function AltarSurface() {
   return (
-    <img
-      src={src}
-      alt=""
-      className="h-24 w-auto select-none"
-      draggable={false}
-      style={{
-        transform: `rotate(${rot}deg)`,
-        filter:
-          "drop-shadow(0 14px 18px oklch(0.04 0 0 / 0.55)) drop-shadow(0 2px 4px oklch(0.05 0 0 / 0.45))",
-      }}
-    />
+    <>
+      {/* 远端淡入背景，营造深度 */}
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
+        style={{
+          background:
+            "linear-gradient(to bottom, oklch(0.18 0.02 40 / 0) 0%, oklch(0.18 0.02 40 / 0.25) 100%)",
+        }}
+      />
+      {/* 木质台面：透视倾斜 */}
+      <div
+        className="pointer-events-none absolute left-1/2 bottom-0 h-40 w-[140%] -translate-x-1/2"
+        style={{
+          transform: "translateX(-50%) perspective(420px) rotateX(58deg)",
+          transformOrigin: "center bottom",
+          background:
+            "radial-gradient(ellipse at 50% 30%, oklch(0.34 0.05 55) 0%, oklch(0.22 0.04 50) 55%, oklch(0.14 0.03 45) 100%)",
+          boxShadow: "inset 0 20px 40px oklch(0.05 0 0 / 0.6)",
+        }}
+      />
+      {/* 台面边缘高光 */}
+      <div
+        className="pointer-events-none absolute inset-x-0"
+        style={{
+          bottom: "78px",
+          height: "1px",
+          background:
+            "linear-gradient(to right, transparent 0%, oklch(0.55 0.08 60 / 0.5) 50%, transparent 100%)",
+        }}
+      />
+    </>
   );
 }
 
-/* —— 抛掷中的一只筊：sprite 帧序列 + 抛物线轨迹 —— */
-function BeiToss({
+/* —— rAF 物理抛掷：抛物线 + 帧切换 + 滑行 + 微晃 —— */
+function BeiPhysicsToss({
   seed,
   landFace,
-  offsetX,
+  startX,
   landX,
-  delay = 0,
+  landDelay,
 }: {
   seed: number;
-  landFace: boolean; // true=凸面朝上 / false=平面朝上
-  offsetX: number;
+  landFace: boolean;
+  startX: number;
   landX: number;
-  delay?: number;
+  landDelay: number;
 }) {
   const rnd = useMemo(() => mulberry32(seed), [seed]);
-
-  // 该次抛掷使用的帧池：随机选 alt/正
-  const framePool = useMemo(() => (rnd() > 0.5 ? FLIP_FORWARD : FLIP_REVERSE), [rnd]);
   const finalFrame = landFace ? RED_REST : FLAT_REST;
 
-  // 生成 sprite 时间表：在 0~LAND_MS 之间切换帧，越接近落地间隔越大（减速）
-  const LAND_MS = 1150;
-  const schedule = useMemo(() => {
-    const arr: { t: number; idx: number }[] = [];
-    let t = 0;
-    let i = Math.floor(rnd() * framePool.length);
+  // 飞行中的翻面序列：4~7 次翻面，保证最后一次落到 finalFrame
+  const flipPlan = useMemo(() => {
+    const flips = 4 + Math.floor(rnd() * 4); // 4~7
+    const order = [EDGE_A, FLAT_REST, EDGE_B, RED_REST];
+    const seq: number[] = [];
+    let i = Math.floor(rnd() * order.length);
     let dir = rnd() > 0.5 ? 1 : -1;
-    while (t < LAND_MS - 90) {
-      const progress = t / LAND_MS;
-      const interval = 55 + progress * progress * 135;
-      const poolIdx = ((i % framePool.length) + framePool.length) % framePool.length;
-      arr.push({ t, idx: framePool[poolIdx] });
+    for (let k = 0; k < flips; k++) {
+      seq.push(order[((i % order.length) + order.length) % order.length]);
       i += dir;
-      if (rnd() < 0.06) dir = -dir;
-      t += interval;
+      if (rnd() < 0.15) dir = -dir;
     }
-    arr.push({ t: LAND_MS, idx: finalFrame });
-    return arr;
-  }, [rnd, framePool, finalFrame]);
+    // 倒数第二帧给一个相邻的 edge 过度，最后一帧锁定到 finalFrame
+    seq[seq.length - 1] = rnd() > 0.5 ? EDGE_A : EDGE_B;
+    seq.push(finalFrame);
+    return seq;
+  }, [rnd, finalFrame]);
 
-  const [activeIdx, setActiveIdx] = useState<number>(schedule[0].idx);
+  // 飞行参数
+  const peakY = 110 + rnd() * 40;        // 最高点上抬像素
+  const restRotZ = (rnd() * 30 - 15);    // 静止后平面随机角度
+  const slideDx = (landX > 0 ? 1 : -1) * (4 + rnd() * 8);
+
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const frameRef = useRef<number | null>(null);
+  const [frame, setFrame] = useState<number>(flipPlan[0]);
 
   useEffect(() => {
     let rafId = 0;
-    const start = performance.now() + delay;
-    let cursor = 0;
+    const start = performance.now() + landDelay;
+    const totalDuration = FLIGHT_MS + SLIDE_MS + SETTLE_MS;
+
     const tick = (now: number) => {
-      const elapsed = now - start;
-      while (cursor < schedule.length && schedule[cursor].t <= elapsed) {
-        setActiveIdx(schedule[cursor].idx);
-        cursor++;
+      const t = now - start;
+      const el = wrapperRef.current;
+      if (!el) {
+        rafId = requestAnimationFrame(tick);
+        return;
       }
-      if (cursor < schedule.length) {
+
+      let x = startX;
+      let y = 0;
+      let scale = 1;
+      let rz = restRotZ;
+      let scaleY = 1;
+
+      if (t < 0) {
+        // 准备拍：略微下蹲
+        x = startX;
+        y = 2;
+        scale = 0.97;
+      } else if (t < FLIGHT_MS) {
+        // 空中：抛物线（u 从 0→1）
+        const u = t / FLIGHT_MS;
+        x = startX + (landX - startX) * u;
+        // 抛物线：u(1-u)*4 → 峰值 1
+        y = -peakY * (u * (1 - u) * 4);
+        // 近大远小：抛到最高点最小
+        scale = 1 - 0.18 * (u * (1 - u) * 4);
+
+        // 翻面：在飞行段均匀分布 flipPlan（最后一帧锁在飞行末尾前 60ms）
+        const lockBefore = 0.94;
+        const flipU = Math.min(u / lockBefore, 1);
+        const idx = Math.min(
+          flipPlan.length - 1,
+          Math.floor(flipU * flipPlan.length)
+        );
+        if (idx !== (frameRef.current ?? -1)) {
+          frameRef.current = idx;
+          setFrame(flipPlan[idx]);
+        }
+        // 旋转：起手 → 落地从一个角度滑向 restRotZ
+        rz = restRotZ + (1 - u) * (rnd() > 0.5 ? 25 : -25);
+        // scaleY 抖动：靠近 edge 帧时压扁
+        const current = flipPlan[idx];
+        if (current === EDGE_A || current === EDGE_B) scaleY = 0.7 + (u * 0.2);
+      } else if (t < FLIGHT_MS + SLIDE_MS) {
+        // 滑行 + 小回弹
+        const u = (t - FLIGHT_MS) / SLIDE_MS;
+        x = landX + slideDx * (1 - (1 - u) * (1 - u));
+        // 落地小回弹两下
+        y = -Math.max(0, Math.sin(u * Math.PI) * 6) - (u < 0.3 ? Math.sin(u * Math.PI / 0.3) * 4 : 0);
+        scale = 1 + 0.04 * Math.sin(u * Math.PI);
+        rz = restRotZ;
+        if (frameRef.current !== flipPlan.length - 1) {
+          frameRef.current = flipPlan.length - 1;
+          setFrame(finalFrame);
+        }
+      } else if (t < totalDuration) {
+        // 微微摇晃收敛
+        const u = (t - FLIGHT_MS - SLIDE_MS) / SETTLE_MS;
+        x = landX + slideDx;
+        y = 0;
+        rz = restRotZ + Math.sin(u * Math.PI * 3) * 1.8 * (1 - u);
+      } else {
+        x = landX + slideDx;
+        y = 0;
+        rz = restRotZ;
+      }
+
+      el.style.transform =
+        `translate3d(calc(-50% + ${x}px), calc(${y}px), 0) ` +
+        `scale(${scale}) scaleY(${scaleY}) rotate(${rz}deg)`;
+
+      if (t < totalDuration) {
         rafId = requestAnimationFrame(tick);
       }
     };
+
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
-  }, [schedule, delay]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // 每只筊小幅随机平面旋转（非翻面，仅落地姿态）
-  const endRotZ = Math.floor(rnd() * 30) - 15;
-  // 抛掷过程中的平面自旋角度（飞行中的方向变化）
-  const spinFrom = Math.floor(rnd() * 40) - 60;
-  const spinTo = Math.floor(rnd() * 40) + 20;
 
   return (
     <div
-      className="absolute bottom-3 left-1/2"
+      ref={wrapperRef}
+      className="absolute left-1/2"
       style={{
-        transform: "translateX(-50%)",
+        bottom: "62px",
         width: 96,
         height: 96,
+        transformOrigin: "50% 80%",
+        willChange: "transform",
       }}
     >
-      <div
-        className="relative h-24 w-24"
-        style={{
-          animation: `bei-toss 1.6s cubic-bezier(0.33,0,0.4,1) ${delay}ms forwards`,
-          ["--tx0" as string]: `${offsetX}px`,
-          ["--tx-land" as string]: `${landX}px`,
-          ["--rot-z" as string]: `${endRotZ}deg`,
-          ["--spin-from" as string]: `${spinFrom}deg`,
-          ["--spin-to" as string]: `${spinTo}deg`,
-          willChange: "transform",
-        }}
-      >
-        <span
-          className="absolute left-1/2 top-full h-3 w-20 rounded-[50%] -translate-x-1/2"
+      {ALL_FRAMES.map((src, idx) => (
+        <img
+          key={idx}
+          src={src}
+          alt=""
+          draggable={false}
+          className="absolute left-1/2 top-1/2 h-24 w-auto -translate-x-1/2 -translate-y-1/2 select-none"
           style={{
-            background: "oklch(0.18 0.02 40 / 0.55)",
-            animation: `bei-shadow 1.6s cubic-bezier(0.33,0,0.4,1) ${delay}ms forwards`,
-            transformOrigin: "center center",
+            opacity: idx === frame ? 1 : 0,
+            transition: "opacity 30ms linear",
+            filter:
+              "drop-shadow(0 6px 10px oklch(0.05 0 0 / 0.55)) drop-shadow(0 1px 2px oklch(0.05 0 0 / 0.4))",
           }}
         />
-        {/* 所有帧叠加，靠 opacity 切换，避免每次解码 PNG */}
-        {ALL_FRAMES.map((src, idx) => (
-          <img
-            key={idx}
-            src={src}
-            alt=""
-            draggable={false}
-            className="absolute left-1/2 top-1/2 h-24 w-auto -translate-x-1/2 -translate-y-1/2 select-none"
-            style={{
-              opacity: idx === activeIdx ? 1 : 0,
-              filter:
-                "drop-shadow(0 6px 10px oklch(0.05 0 0 / 0.55)) drop-shadow(0 1px 2px oklch(0.05 0 0 / 0.4))",
-            }}
-          />
-        ))}
-      </div>
+      ))}
     </div>
   );
 }
 
-function DustPuff({ originX, seed }: { originX: string; seed: number }) {
+function DustPuff({ originX, seed, delay = 0 }: { originX: string; seed: number; delay?: number }) {
   const particles = useMemo(() => {
     const rnd = mulberry32(seed);
-    return Array.from({ length: 14 }).map((_, i) => {
+    return Array.from({ length: 7 }).map((_, i) => {
       const angle = (Math.PI * (0.15 + rnd() * 0.7)) * (rnd() > 0.5 ? 1 : -1);
-      const dist = 24 + rnd() * 38;
+      const dist = 18 + rnd() * 26;
       return {
         i,
         dx: Math.cos(angle) * dist,
-        dy: -Math.abs(Math.sin(angle)) * (dist * 0.7) - 6,
-        size: 2 + rnd() * 4,
-        delay: rnd() * 90,
-        op: 0.35 + rnd() * 0.45,
+        dy: -Math.abs(Math.sin(angle)) * (dist * 0.55) - 4,
+        size: 2 + rnd() * 3,
+        delay: delay + rnd() * 80,
+        op: 0.18 + rnd() * 0.2,
       };
     });
-  }, [seed]);
+  }, [seed, delay]);
 
   return (
     <div
-      className="pointer-events-none absolute bottom-3"
-      style={{ left: originX, transform: "translateX(-50%)" }}
+      className="pointer-events-none absolute"
+      style={{ left: originX, bottom: "60px", transform: "translateX(-50%)" }}
     >
       {particles.map((p) => (
         <span
@@ -388,8 +484,8 @@ function DustPuff({ originX, seed }: { originX: string; seed: number }) {
             width: p.size,
             height: p.size,
             background:
-              "radial-gradient(circle, oklch(0.72 0.02 220 / 0.85) 0%, oklch(0.45 0.02 230 / 0) 70%)",
-            animation: `dust-puff 1.1s cubic-bezier(0.16,0.84,0.44,1) ${p.delay}ms forwards`,
+              "radial-gradient(circle, oklch(0.55 0.04 55 / 0.7) 0%, oklch(0.35 0.04 50 / 0) 70%)",
+            animation: `dust-puff 1s cubic-bezier(0.16,0.84,0.44,1) ${p.delay}ms forwards`,
             ["--dx" as string]: `${p.dx}px`,
             ["--dy" as string]: `${p.dy}px`,
             ["--dust-op" as string]: `${p.op}`,
@@ -404,19 +500,34 @@ function DustPuff({ originX, seed }: { originX: string; seed: number }) {
 
 function ImpactRing({ originX, delay = 0 }: { originX: string; delay?: number }) {
   return (
-    <span
-      className="pointer-events-none absolute"
-      style={{
-        left: originX,
-        bottom: "12px",
-        width: 80,
-        height: 18,
-        borderRadius: "50%",
-        border: "1px solid oklch(0.55 0.16 30 / 0.55)",
-        animation: `impact-ring 0.7s cubic-bezier(0.16,0.84,0.44,1) ${delay}ms forwards`,
-        transform: "translate(-50%, -50%)",
-      }}
-    />
+    <>
+      <span
+        className="pointer-events-none absolute"
+        style={{
+          left: originX,
+          bottom: "60px",
+          width: 50,
+          height: 12,
+          borderRadius: "50%",
+          border: "1px solid oklch(0.5 0.08 55 / 0.5)",
+          animation: `impact-ring 0.45s cubic-bezier(0.16,0.84,0.44,1) ${delay}ms forwards`,
+          transform: "translate(-50%, -50%)",
+        }}
+      />
+      <span
+        className="pointer-events-none absolute"
+        style={{
+          left: originX,
+          bottom: "60px",
+          width: 70,
+          height: 16,
+          borderRadius: "50%",
+          border: "1px solid oklch(0.45 0.06 50 / 0.3)",
+          animation: `impact-ring 0.75s cubic-bezier(0.16,0.84,0.44,1) ${delay + 80}ms forwards`,
+          transform: "translate(-50%, -50%)",
+        }}
+      />
+    </>
   );
 }
 
