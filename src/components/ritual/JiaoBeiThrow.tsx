@@ -422,7 +422,6 @@ function BeiPhysicsToss({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const frameRef = useRef<number | null>(null);
 
   return (
     <div
