@@ -458,28 +458,11 @@
 
 /* 落地震屏 */
 @keyframes screen-shake {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0);
-  }
-  10% {
-    transform: translate3d(-3px, 4px, 0);
-  }
-  25% {
-    transform: translate3d(4px, -3px, 0);
-  }
-  40% {
-    transform: translate3d(-2px, 2px, 0);
-  }
-  55% {
-    transform: translate3d(2px, -1px, 0);
-  }
-  70% {
-    transform: translate3d(-1px, 1px, 0);
-  }
-  85% {
-    transform: translate3d(1px, 0, 0);
-  }
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  20% { transform: translate3d(-1.5px, 2px, 0); }
+  45% { transform: translate3d(2px, -1px, 0); }
+  70% { transform: translate3d(-1px, 1px, 0); }
+  90% { transform: translate3d(0.5px, 0, 0); }
 }
 
 /* 尘粒：从落点向外飘散 */
