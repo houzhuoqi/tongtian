@@ -332,6 +332,7 @@ function BeiPhysicsToss({
   const slideDx = (landX > 0 ? 1 : -1) * (4 + rnd() * 8);
 
   const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const frameRef = useRef<number | null>(null);
   const [frame, setFrame] = useState<number>(flipPlan[0]);
 
   useEffect(() => {
